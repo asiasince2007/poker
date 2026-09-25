@@ -102,9 +102,10 @@ test("compact overview fits 430×740; only heart and diamond symbols are red", a
     [...e.querySelectorAll("*")].flatMap((n) => {
       const s = getComputedStyle(n);
       return [
-        ...(n.matches(".card.red:not(.covered) small") ? [] : [s.color]),
+        ...(n.matches(".card.red:not(.covered) small")
+          ? []
+          : [s.color, s.borderTopColor]),
         s.backgroundColor,
-        s.borderTopColor,
       ];
     }),
   );
