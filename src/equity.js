@@ -3,7 +3,9 @@ import { evaluate, categoryOf } from "./evaluator.js";
 export function random(seed) {
   let state = seed >>> 0;
   return () => {
-    state += 0x6d2b79f5;
+    // Wrap on every draw: millions of additions otherwise exceed JS's exact
+    // integer range and silently corrupt the low bits used by the generator.
+    state = (state + 0x6d2b79f5) >>> 0;
     let t = state;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -16,19 +18,19 @@ export function validateScenario(hero, board, opponents) {
     throw new Error(
       "Zwei eigene und null, drei, vier oder fünf Tischkarten erforderlich.",
     );
-  if (!Number.isInteger(opponents) || opponents < 1 || opponents > 5)
-    throw new Error("Ein bis fünf aktive Gegner erforderlich.");
+  if (!Number.isInteger(opponents) || opponents < 1 || opponents > 8)
+    throw new Error("Ein bis acht aktive Gegner erforderlich.");
 }
 export function potShare(scores) {
   const best = Math.max(...scores);
   return scores[0] === best ? 1 / scores.filter((s) => s === best).length : 0;
 }
 export function simulate(
-  { hero, board, opponents, n = 30000, seed = 20260925 },
+  { hero, board, opponents, n = 1000000, seed = 20260925 },
   progress,
 ) {
   validateScenario(hero, board, opponents);
-  if (!Number.isInteger(n) || n < 100 || n > 1000000)
+  if (!Number.isInteger(n) || n < 100 || n > 5000000)
     throw new Error("Ungültige Stichprobengröße.");
   const known = new Set([...hero, ...board]),
     pool = deck.filter((c) => !known.has(c));
@@ -73,14 +75,37 @@ export function simulate(
     else if (share > 0) ties++;
     finalCategories[categoryOf(score)]++;
   }
-  // River heads-up: just C(45,2)=990 equally likely enemy combinations.
-  if (board.length === 5 && opponents === 1) {
+  // Exact postflop heads-up. Unordered runouts are sufficient: only showdown
+  // outcomes are evaluated, not decisions at intermediate betting streets.
+  if (board.length >= 3 && opponents === 1) {
     let done = 0;
-    for (let a = 0; a < pool.length; a++)
-      for (let b = a + 1; b < pool.length; b++) {
-        record(board, [pool[a], pool[b]]);
-        done++;
-      }
+    const total =
+      board.length === 3 ? 1070190 : board.length === 4 ? 45540 : 990;
+    function finish(runout, remaining) {
+      for (let a = 0; a < remaining.length; a++)
+        for (let b = a + 1; b < remaining.length; b++) {
+          record([...board, ...runout], [remaining[a], remaining[b]]);
+          done++;
+          if (progress && done % 25000 === 0 && done < total)
+            progress({ n: done, total, method: "enumerating" });
+        }
+    }
+    if (board.length === 5) finish([], pool);
+    else if (board.length === 4) {
+      for (const c of pool)
+        finish(
+          [c],
+          pool.filter((v) => v !== c),
+        );
+    } else {
+      for (let a = 0; a < pool.length; a++)
+        for (let b = a + 1; b < pool.length; b++) {
+          finish(
+            [pool[a], pool[b]],
+            pool.filter((v) => v !== pool[a] && v !== pool[b]),
+          );
+        }
+    }
     return report(done, "exact");
   }
   for (let i = 1; i <= n; i++) {
@@ -91,7 +116,7 @@ export function simulate(
     }
     const missing = 5 - board.length;
     record([...board, ...pool.slice(0, missing)], pool.slice(missing, needed));
-    if (progress && (i === 2000 || i % 10000 === 0) && i < n)
+    if (progress && (i === 2000 || i === 10000 || i % 50000 === 0) && i < n)
       progress(report(i));
   }
   return report(n);

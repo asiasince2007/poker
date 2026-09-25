@@ -126,7 +126,7 @@ test("tie shares, impossible inputs, seeded simulations and exact river", () => 
   assert.equal(potShare([9, 8]), 1);
   assert.throws(() => validateScenario(c("As Ad"), c("2s 3s"), 1));
   assert.throws(() => validateScenario(c("As Ad"), c("As 3s 4s"), 1));
-  assert.throws(() => validateScenario(c("As Ad"), [], 6));
+  assert.throws(() => validateScenario(c("As Ad"), [], 9));
   const full = { hero: c("2d 3c"), board: c("As Ks Qs Js Ts"), opponents: 1 };
   const r = simulate(full);
   assert.equal(r.method, "exact");

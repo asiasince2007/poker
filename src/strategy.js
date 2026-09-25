@@ -1,5 +1,5 @@
 import { handClass, rank, suit } from "./cards.js";
-import { bestFive } from "./evaluator.js";
+import { bestFive, evaluate } from "./evaluator.js";
 export const euros = (cents) =>
   (cents / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 export function money(text) {
@@ -19,6 +19,24 @@ export function callPrice(pot, call, q) {
   )
     throw new Error("Pot, Call und Anteil prüfen.");
   return { required: call / (pot + call), ev: q * (pot + call) - call };
+}
+// P is held fixed, inclusive of the already observed enemy bet. This is a
+// break-even call ceiling, NOT a bet sizing rule or a guaranteed safe amount.
+export function callCeiling(pot, q, chip, stack) {
+  if (
+    !Number.isInteger(pot) ||
+    pot < 0 ||
+    !Number.isFinite(q) ||
+    q < 0 ||
+    q > 1 ||
+    !Number.isInteger(chip) ||
+    chip <= 0 ||
+    !Number.isInteger(stack) ||
+    stack < 0
+  )
+    throw new Error("Pot, Anteil, Chipgröße und Reststack prüfen.");
+  const raw = q === 1 ? Infinity : (q * pot) / (1 - q);
+  return Math.floor((Math.min(raw, stack) + 1e-9) / chip) * chip;
 }
 export function minimumRaise(highest, lastFullRaise, bb) {
   if (
@@ -148,7 +166,7 @@ export function advice(s) {
         : call === 0
           ? "Kostenlos schieben. Für diese Hand sieht der vorsichtige Plan keine Erhöhung vor."
           : "Aussteigen ist der vorsichtige Anfängerstandard gegen bloße Mitspieler. Ein spekulativer Call benötigt zusätzliche Begründung.";
-    return openingHand(hero, position)
+    return openingHand(hero, position) && (opponents <= 5 || strong)
       ? raise(3 * bb)
       : "Aussteigen: Diese Hand liegt außerhalb der vereinfachten Eröffnungsauswahl für deine Position.";
   }
@@ -157,18 +175,23 @@ export function advice(s) {
   if (paid > 0)
     return "Du hast in dieser Setzrunde schon bezahlt. Eine neue Eröffnung passt nicht dazu; Aktionsfolge prüfen. Wenn nichts fehlt, ist Schieben möglich.";
   const cat = bestFive([...hero, ...board]).category;
-  if (board.length !== 3)
-    return "Kostenlos schieben ist möglich. Die vereinfachte Setzregel gilt nur am Flop; Turn/River neu nach Gegnerauswahl bewerten.";
+  if (
+    board.length === 5 &&
+    bestFive([...hero, ...board]).score === evaluate(board)
+  )
+    return "Kostenlos schieben als vorsichtiger Standard: Deine beste Hand liegt vollständig auf dem Tisch. Keine Value-Bet allein wegen des Handnamens.";
   const rs = board.map(rank),
     ss = board.map(suit),
     sorted = [...new Set(rs)].sort((a, b) => a - b);
-  const straightBoard = [
-    sorted,
-    sorted.map((r) => (r === 14 ? 1 : r)).sort((a, b) => a - b),
-  ].some((v) => v.length === 3 && v[2] - v[0] <= 4);
+  const straightBoard = [sorted, sorted.map((r) => (r === 14 ? 1 : r))].some(
+    (values) =>
+      Array.from({ length: 10 }, (_, i) => i + 1).some(
+        (low) => values.filter((r) => r >= low && r <= low + 4).length >= 3,
+      ),
+  );
   const warning =
-    (new Set(rs).size < 3 && cat < 6) ||
-    (new Set(ss).size === 1 && cat < 5) ||
+    (new Set(rs).size < board.length && cat < 6) ||
+    (ss.some((s) => ss.filter((v) => v === s).length >= 3) && cat < 5) ||
     (straightBoard && cat < 4);
   if (warning || cat < 2 || !s.worseCalls)
     return "Kostenlos schieben als vorsichtiger Standard. Eine Bet braucht eine Begründung: Bezahlen schlechtere Hände? Steigen bessere aus?";
