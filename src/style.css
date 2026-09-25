@@ -180,6 +180,9 @@ p {
   right: 5px;
   bottom: 5px;
 }
+.card.red:not(.covered) small {
+  color: #b32626;
+}
 .card.empty {
   font:
     11px system-ui,
