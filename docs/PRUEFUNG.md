@@ -21,7 +21,7 @@ Ein beim ersten Test gefundener Unterschied zwischen automatischer Eingabefüllu
 
 ## Kompakte Präzisionsfassung
 
-Zusätzliche Tests: exakte Flop-/Turn-Anzahlen und Royal-Flush-Sicherheitsfälle, keine Equity aus deterministischen Enumerationspräfixen, 1-Mio.- und 5-Mio.-Zielgrößen mit sinkendem Fehler, feste-Pot-Callgrenzen inklusive q=0/1, Chiprundung und Reststack. Browser: unabhängiges Verdecken aller drei Bereiche, keine sichtbaren abgeleiteten Angaben, Reset, Berechnung bei verdecktem Ergebnis, 5-Mio.-Modus, exakte Floprechnung und bedingte Kurzempfehlungen. Hauptansicht bei 430×740 geprüft, um gegenüber 430×932 Platz für Browserleisten zu lassen. Schrift und Farben bewusst zurückhaltend; Eingaben bleiben mit 16-px-Schrift, interaktive Ziele mindestens 44 px hoch.
+Zusätzliche Tests: PRNG-Zustand nach sechs Millionen Ziehungen gegen eine unabhängige BigInt-Zustandsrechnung, exakte Flop-/Turn-Anzahlen und Royal-Flush-Sicherheitsfälle, keine Equity aus deterministischen Enumerationspräfixen, 1-Mio.- und 5-Mio.-Zielgrößen mit sinkendem Fehler, feste-Pot-Callgrenzen inklusive q=0/1, Chiprundung und Reststack. Browser: unabhängiges Verdecken aller drei Bereiche, keine sichtbaren abgeleiteten Angaben, Reset, Berechnung bei verdecktem Ergebnis, 5-Mio.-Modus, exakte Floprechnung und bedingte Kurzempfehlungen. Hauptansicht bei 430×740 geprüft, um gegenüber 430×932 Platz für Browserleisten zu lassen. Schrift und Farben bewusst zurückhaltend; Eingaben bleiben mit 16-px-Schrift, interaktive Ziele mindestens 44 px hoch.
 
 ## iPhone 14 Pro Max: kurzer echter Gerätetest
 

@@ -3,7 +3,9 @@ import { evaluate, categoryOf } from "./evaluator.js";
 export function random(seed) {
   let state = seed >>> 0;
   return () => {
-    state += 0x6d2b79f5;
+    // Wrap on every draw: millions of additions otherwise exceed JS's exact
+    // integer range and silently corrupt the low bits used by the generator.
+    state = (state + 0x6d2b79f5) >>> 0;
     let t = state;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);

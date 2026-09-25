@@ -1,8 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { simulate } from "../src/equity.js";
+import { random, simulate } from "../src/equity.js";
 import { parseCards as c } from "../src/cards.js";
 import { advice, callCeiling, callPrice } from "../src/strategy.js";
+
+test("PRNG preserves modular state beyond the JavaScript safe-integer boundary", () => {
+  const seed = 20260925,
+    rng = random(seed);
+  const n = 6000000;
+  let actual;
+  for (let i = 0; i < n; i++) actual = rng();
+  // Independently derive the nth state with exact BigInt arithmetic. Unbounded
+  // Number additions exceed 2^53 before this checkpoint and produce a mismatch.
+  let t = Number((BigInt(seed) + BigInt(n) * 0x6d2b79f5n) & 0xffffffffn);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  assert.equal(actual, ((t ^ (t >>> 14)) >>> 0) / 4294967296);
+});
 
 test("exact flop and turn counts, no biased equity in enumeration progress", () => {
   const progress = [];
