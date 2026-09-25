@@ -9,11 +9,13 @@
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "test": "node --test tests/*.test.js",
     "test:browser": "playwright test",
-    "check:privacy": "node scripts/check-public.js"
+    "check:privacy": "node scripts/check-public.js",
+    "format:check": "prettier --check \"src/*.{js,css}\" \"scripts/*.js\" \"tests/**/*.js\" index.html vite.config.js playwright.config.js \".github/workflows/*.yml\""
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
     "pokersolver": "2.1.4",
+    "prettier": "3.9.9",
     "vite": "8.3.1"
   },
   "engines": {
