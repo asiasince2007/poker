@@ -48,6 +48,9 @@ test("private by default; independent controls, inferred information, all-hide a
   await page.locator("#hide-all").click();
   await expect(page.locator("#result")).toBeHidden();
   await expect(page.locator("#current-hand")).toBeHidden();
+  await page.locator("#opponents").selectOption("0");
+  await expect(page.locator("#current-hand")).toBeHidden();
+  await page.locator("#opponents").selectOption("2");
   await page.locator("#toggle-equity").click();
   await page.locator("#new-hand").click();
   await expect(page.locator("#toggle-equity")).toHaveAttribute(

@@ -395,10 +395,8 @@ function applyVisibility() {
     button.setAttribute("aria-pressed", String(revealed[key]));
   }
   const sensitiveHand =
-    hero().length === 2 &&
-    (board().length === 0 || board().length >= 3) &&
-    enemies() > 0;
-  const sensitive = sensitiveHand && !calculationFailed;
+    hero().length === 2 && (board().length === 0 || board().length >= 3);
+  const sensitive = sensitiveHand && enemies() > 0 && !calculationFailed;
   $("current-hand").hidden = sensitiveHand && !revealed.equity;
   $("current-mask").hidden = !$("current-hand").hidden;
   $("result").hidden = sensitive && !revealed.equity;
