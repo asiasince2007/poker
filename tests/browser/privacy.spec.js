@@ -70,7 +70,7 @@ test("own cards concealed; board and equity visible until explicitly hidden", as
   await expect(page.locator("#result")).toBeHidden();
   await expect(page.locator("#board-cards")).not.toContainText("Q");
 });
-test("compact monochrome overview fits 430×740 with results", async ({
+test("compact overview fits 430×740; only heart and diamond symbols are red", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 430, height: 740 });
@@ -101,7 +101,12 @@ test("compact monochrome overview fits 430×740 with results", async ({
   const colors = await page.locator("#rechner").evaluate((e) =>
     [...e.querySelectorAll("*")].flatMap((n) => {
       const s = getComputedStyle(n);
-      return [s.color, s.backgroundColor, s.borderTopColor];
+      return [
+        ...(n.matches(".card.red:not(.covered) small")
+          ? []
+          : [s.color, s.borderTopColor]),
+        s.backgroundColor,
+      ];
     }),
   );
   for (const color of colors) {
@@ -111,6 +116,10 @@ test("compact monochrome overview fits 430×740 with results", async ({
         true,
       );
   }
+  for (const symbol of await page
+    .locator(".card.red:not(.covered) small")
+    .all())
+    await expect(symbol).toHaveCSS("color", "rgb(179, 38, 38)");
   await page.screenshot({
     path: `test-results/${test.info().project.name}-compact.png`,
   });
