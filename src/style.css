@@ -117,6 +117,17 @@ p {
   letter-spacing: 1px;
   margin-top: 3px;
 }
+.mini-card {
+  display: inline-block;
+  margin-right: 5px;
+}
+.mini-card small {
+  font-size: inherit;
+}
+.mini-card.red small,
+#suit-picker .suit-option.red .suit-symbol {
+  color: #b32626;
+}
 .top-actions {
   display: flex;
   gap: 6px;
