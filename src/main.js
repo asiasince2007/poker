@@ -5,7 +5,6 @@ import {
   suitNames,
   rankNames,
   cardName,
-  shortCard,
   handClass,
 } from "./cards.js";
 import { bestFive, categories } from "./evaluator.js";
@@ -139,8 +138,9 @@ function renderPicker() {
     ...suits.map((s, i) => {
       const c = ranks.indexOf(selectedRank) * 4 + i,
         b = document.createElement("button");
-      b.textContent = `${s} ${suitNames[i]}`;
-      b.className = i === 1 || i === 2 ? "red" : "black";
+      const colorClass = i === 1 || i === 2 ? "red" : "black";
+      b.innerHTML = `<span class="suit-symbol">${s}</span> <span>${suitNames[i]}</span>`;
+      b.className = `suit-option ${colorClass}`;
       b.setAttribute("aria-label", cardName(c));
       b.disabled = cards.some((v, j) => v === c && j !== selectedSlot);
       b.onclick = () => setCard(c);
@@ -334,7 +334,7 @@ function renderCurrent() {
   } else {
     const best = bestFive([...h, ...b]);
     $("current-hand").innerHTML =
-      `<strong>${categories[best.category]}</strong>${revealed.hero && revealed.board ? `<span class="mini-cards">${best.cards.map(shortCard).join(" ")}</span>` : ""}`;
+      `<strong>${categories[best.category]}</strong>${revealed.hero && revealed.board ? `<span class="mini-cards">${best.cards.map((c) => `<span class="mini-card ${c % 4 === 1 || c % 4 === 2 ? "red" : "black"}">${ranks[c >> 2].replace("T", "10")}<small>${suits[c % 4]}</small></span>`).join(" ")}</span>` : ""}`;
   }
 }
 function renderEquity(partial) {

@@ -101,10 +101,12 @@ test("compact overview fits 430×740; only heart and diamond symbols are red", a
   const colors = await page.locator("#rechner").evaluate((e) =>
     [...e.querySelectorAll("*")].flatMap((n) => {
       const s = getComputedStyle(n);
+      const isRedSuitSymbol =
+        n.matches(".card.red:not(.covered) small") ||
+        n.matches(".mini-card.red small") ||
+        n.matches("#suit-picker .suit-option.red .suit-symbol");
       return [
-        ...(n.matches(".card.red:not(.covered) small")
-          ? []
-          : [s.color, s.borderTopColor]),
+        ...(isRedSuitSymbol ? [] : [s.color, s.borderTopColor]),
         s.backgroundColor,
       ];
     }),
@@ -120,9 +122,26 @@ test("compact overview fits 430×740; only heart and diamond symbols are red", a
     .locator(".card.red:not(.covered) small")
     .all())
     await expect(symbol).toHaveCSS("color", "rgb(179, 38, 38)");
+  for (const symbol of await page.locator(".mini-card.red small").all())
+    await expect(symbol).toHaveCSS("color", "rgb(179, 38, 38)");
   await page.screenshot({
     path: `test-results/${test.info().project.name}-compact.png`,
   });
+});
+test("red suits stay red in best-five summary and card picker", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.locator("#toggle-hero").click();
+  await expect(page.locator(".mini-card.red small").first()).toHaveCSS(
+    "color",
+    "rgb(179, 38, 38)",
+  );
+  await page.getByRole("button", { name: "Handkarte 1: Ass Herz" }).click();
+  await expect(
+    page.locator("#suit-picker .suit-option.red .suit-symbol").first(),
+  ).toHaveCSS("color", "rgb(179, 38, 38)");
+  await page.locator("#close-picker").click();
 });
 test("5 million mode, result masks do not interrupt calculation, exact flop mode", async ({
   page,
