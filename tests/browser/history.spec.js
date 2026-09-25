@@ -31,7 +31,7 @@ test("save optional board, gross payout and loss; persist, mask, update, export 
   await page.locator("#open-history").click();
   await expect(page.locator("#history-content")).toBeHidden();
   await page.locator("#toggle-history").click();
-  await expect(page.locator("#history-message")).toContainText("1 Hände");
+  await expect(page.locator("#history-message")).toContainText("1 Hand");
   await expect(page.locator("#history-list")).toContainText(
     "Tisch: nicht erfasst",
   );

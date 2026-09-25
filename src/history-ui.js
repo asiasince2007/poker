@@ -51,7 +51,7 @@ export function initHistory(snapshot) {
       const records = readHistory(localStorage),
         s = summarize(records);
       $("history-message").textContent =
-        `${s.count} Hände · nur in diesem Browser`;
+        `${s.count} ${s.count === 1 ? "Hand" : "Hände"} · nur in diesem Browser`;
       $("history-summary").replaceChildren(
         node(
           "p",
@@ -59,7 +59,7 @@ export function initHistory(snapshot) {
         ),
         node(
           "p",
-          `Geschätzte Auszahlungen inkl. Einsatz: ${euros(s.grossPayoutCents)} aus ${s.payoutEntries} Betragsangaben. Geschätzte verlorene Einsätze: ${euros(s.lostStakeCents)} aus ${s.lossEntries} Betragsangaben.`,
+          `Geschätzte Auszahlungen inkl. Einsatz: ${euros(s.grossPayoutCents)} aus ${s.payoutEntries} ${s.payoutEntries === 1 ? "Betragsangabe" : "Betragsangaben"}. Geschätzte verlorene Einsätze: ${euros(s.lostStakeCents)} aus ${s.lossEntries} ${s.lossEntries === 1 ? "Betragsangabe" : "Betragsangaben"}.`,
         ),
         node(
           "p",
