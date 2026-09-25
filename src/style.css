@@ -324,14 +324,9 @@ label {
   margin: 6px 0;
   line-height: 1.35;
 }
-#quick-call {
+#quick-note {
   font-size: 10px;
   color: #636363;
-}
-#edit-situation {
-  font-size: 11px;
-  width: 100%;
-  padding: 4px;
 }
 .model-note {
   font-size: 10px;
@@ -594,4 +589,9 @@ footer a {
   * {
     scroll-behavior: auto !important;
   }
+}
+
+.quick-help small {
+  font-size: 10px;
+  color: #636363;
 }

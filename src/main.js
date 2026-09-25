@@ -11,7 +11,7 @@ import {
 import { bestFive, categories } from "./evaluator.js";
 import { drawOuts } from "./draws.js";
 import { initHistory } from "./history-ui.js";
-import { advice, money, callPrice, callCeiling, euros } from "./strategy.js";
+import { equityHint, euros } from "./strategy.js";
 const $ = (id) => document.getElementById(id);
 const pc = (q) =>
   (q * 100).toLocaleString("de-DE", {
@@ -20,8 +20,7 @@ const pc = (q) =>
   }) + " %";
 const number = (n) => n.toLocaleString("de-DE");
 const cards = Array(7).fill(null);
-const revealed = { hero: false, board: false, equity: false };
-let callSummary = "Callgrenze: Situation ergänzen.";
+const revealed = { hero: false, board: true, equity: true };
 let completed = false;
 let worker,
   watchdog,
@@ -38,22 +37,6 @@ const historyUI = initHistory(() => ({
   board: board(),
   opponents: enemies(),
 }));
-const textFields = [
-  "pot",
-  "call",
-  "paid",
-  "stack",
-  "highest",
-  "lastRaise",
-  "q",
-  "limpers",
-];
-function resetSituation() {
-  textFields.forEach((id) => ($(id).value = ""));
-  ["closing", "special", "worseCalls"].forEach((id) => ($(id).checked = false));
-  $("position").value = "";
-  $("situation").value = "";
-}
 function cancel() {
   generation++;
   worker?.terminate();
@@ -167,7 +150,6 @@ function renderPicker() {
   $("remove-card").disabled = cards[selectedSlot] === null;
 }
 function setCard(c) {
-  const oldStage = stage();
   if (selectedSlot < 2 && cards[selectedSlot] !== c) historyUI.reset();
   cards[selectedSlot] = c;
   if (c === null && selectedSlot >= 2 && selectedSlot < 5) {
@@ -175,39 +157,26 @@ function setCard(c) {
     cards[6] = null;
   }
   if (c === null && selectedSlot === 5) cards[6] = null;
-  if (stage() !== oldStage) resetSituation();
-  $("q").value = "";
-  $("closing").checked = false;
-  $("worseCalls").checked = false;
   $("picker").close();
   renderCards();
   recalculate();
-}
-function stage() {
-  const n = board().length;
-  return n < 3 ? 0 : n;
 }
 $("close-picker").onclick = () => $("picker").close();
 $("remove-card").onclick = () => setCard(null);
 $("new-hand").onclick = () => {
   historyUI.reset();
   cards.fill(null);
-  Object.keys(revealed).forEach((k) => (revealed[k] = false));
-  resetSituation();
+  Object.assign(revealed, { hero: false, board: true, equity: true });
   $("opponents").value = "5";
   renderCards();
   recalculate();
 };
 $("clear-board").onclick = () => {
   cards.fill(null, 2);
-  resetSituation();
   renderCards();
   recalculate();
 };
 $("opponents").onchange = () => {
-  $("q").value = "";
-  $("closing").checked = false;
-  $("worseCalls").checked = false;
   recalculate();
 };
 function ranking() {
@@ -393,7 +362,7 @@ function renderEquity(partial) {
               " · ",
             )}</p><p>Jede Hand zählt nur in der höchsten Kategorie. Die Kategorieverteilung ist keine Gewinnquote.</p>`
         : ""
-    }<p>Callgrenze: q × P / (1 − q), für den unveränderten aktuell gewinnbaren Pot P inklusive des gegnerischen Einsatzes. Nur bei abschließendem Call ohne weitere Kosten und ohne Nebenpot. Bei Simulation verwendet die angezeigte Modellgrenze die untere 95-%-Intervallgrenze statt des Punktschätzers und wird auf Chipgröße abgerundet sowie auf den Reststack begrenzt. Das berücksichtigt Stichprobenfehler, bietet aber keine Sicherheit gegen Modellfehler. Bei eigener q-Schätzung gibt es kein berechnetes Unsicherheitsintervall. Die Grenze ist kein eigener Setzbetrag und kein strategisches Optimum.</p>`;
+    }<p>Prozent-Faustregel: unter 25 % nicht erhöhen; 25 bis unter 50 %: +0,60 €; 50 bis unter 75 %: +1,20 €; ab 75 %: +2,40 €. Maßgeblich ist der angezeigte, auf eine Nachkommastelle gerundete Potanteil. Diese frei festgelegten Stufen sind nicht wissenschaftlich hergeleitet und keine optimale Einsatzstrategie. Sie berücksichtigen weder Pot, offenen Einsatz, Reststack noch Mindest-Erhöhung. Ein Richtbetrag ist keine sichere oder maximale Callgrenze. Mitgehen gleicht einen bestehenden Einsatz aus; Erhöhen geht darüber hinaus. Schieben ist nur ohne offenen Einsatz möglich. Bei laufender Simulation ist auch die Stufe vorläufig.</p>`;
 }
 function applyVisibility() {
   for (const key of ["hero", "board", "equity"]) {
@@ -413,9 +382,7 @@ function applyVisibility() {
   $("result").hidden = sensitive && !revealed.equity;
   $("result-mask").hidden = !$("result").hidden;
   $("quick-advice").hidden = !revealed.equity;
-  $("quick-call").hidden = !revealed.equity;
-  $("advice").hidden = !revealed.equity;
-  $("call-result").hidden = !revealed.equity;
+  $("quick-note").hidden = !revealed.equity;
   $("calculation-details").hidden = !revealed.equity;
   $("analysis-mask").hidden = revealed.equity;
 }
@@ -424,7 +391,6 @@ function hideAll() {
   Object.keys(revealed).forEach((key) => (revealed[key] = false));
   $("picker").close();
   $("analysis-dialog").close();
-  $("situation-dialog").close();
   renderCards();
   renderCurrent();
   ranking();
@@ -441,152 +407,48 @@ for (const key of ["hero", "board", "equity"]) {
   };
 }
 $("hide-all").onclick = hideAll;
-window.addEventListener("pagehide", hideAll);
+function concealPrivate() {
+  historyUI.conceal();
+  revealed.hero = false;
+  $("picker").close();
+  $("analysis-dialog").close();
+  renderCards();
+  renderCurrent();
+  ranking();
+  applyVisibility();
+}
+window.addEventListener("pagehide", concealPrivate);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) hideAll();
+  if (document.hidden) concealPrivate();
 });
 $("samples").onchange = recalculate;
-$("edit-situation").onclick = () => $("situation-dialog").showModal();
-$("close-situation").onclick = () => $("situation-dialog").close();
 $("show-details").onclick = () => $("analysis-dialog").showModal();
 $("close-analysis").onclick = () => $("analysis-dialog").close();
 function updateAdvice() {
-  callSummary = "Callgrenze: Situation ergänzen.";
-  computeAdvice();
-  const text = $("advice").textContent;
-  $("quick-advice").textContent = /fehlen|auswählen|Zuerst/.test(text)
-    ? "Einsatz offen · Angaben ergänzen."
-    : text.split(". ")[0] + (text.includes(". ") ? "." : "");
-  $("quick-call").textContent = callSummary;
+  const cents = equityHint(current?.equity);
+  if (enemies() === 0) {
+    $("quick-advice").textContent = "Pot gewonnen";
+    $("quick-note").textContent = "Keine weitere Aktion nötig.";
+  } else if (cents === null) {
+    $("quick-advice").textContent = calculationFailed
+      ? "Keine Orientierung"
+      : "Potanteil abwarten";
+    $("quick-note").textContent = calculationFailed
+      ? "Berechnung erneut versuchen."
+      : "Erscheint automatisch mit der Prozentzahl.";
+  } else {
+    $("quick-advice").textContent =
+      cents === 0
+        ? "Schieben / nicht erhöhen"
+        : "Richtbetrag: +" + euros(cents);
+    $("quick-note").textContent =
+      (completed ? "" : "Vorläufig · ") +
+      (cents === 0
+        ? "Schieben nur ohne offenen Einsatz."
+        : "Für Mitgehen oder Erhöhen; keine geprüfte Callgrenze.");
+  }
   applyVisibility();
 }
-function computeAdvice() {
-  const b = board(),
-    s = Object.fromEntries(
-      [
-        "pot",
-        "call",
-        "paid",
-        "stack",
-        "bb",
-        "sb",
-        "chip",
-        "highest",
-        "lastRaise",
-      ].map((id) => [id, money($(id).value)]),
-    );
-  const invalid = Object.keys(s).filter(
-    (id) => $(id).value.trim() && s[id] === null,
-  );
-  $("preflop-situation").hidden = b.length >= 3;
-  $("worse-field").hidden = b.length < 3;
-  $("limpers-field").hidden = $("situation").value !== "limped";
-  document
-    .querySelectorAll(".raise-field")
-    .forEach((e) => (e.hidden = $("situation").value !== "raised"));
-  if (calculationFailed) {
-    $("advice").textContent =
-      "Die Kartenberechnung ist fehlgeschlagen. Keine aktuelle Handlungsempfehlung; bitte erneut berechnen.";
-    $("threshold").textContent = "Berechnung unterbrochen.";
-    $("call-result").textContent = "Keine aktuelle Callbewertung.";
-    return;
-  }
-  const rulesValid =
-    s.sb !== null &&
-    s.sb > 0 &&
-    s.sb <= s.bb &&
-    s.chip > 0 &&
-    s.sb % s.chip === 0;
-  if (enemies() === 0) {
-    $("advice").textContent = "Alle Gegner sind ausgestiegen: Pot gewonnen.";
-    $("threshold").textContent = "Kein Call erforderlich.";
-    $("call-result").textContent = "Pot ohne Kartenvergleich gewonnen.";
-    callSummary = "Kein Call erforderlich.";
-    return;
-  }
-  $("advice").textContent = invalid.length
-    ? "Ungültiger Geldwert: bitte nichtnegative Eurobeträge mit höchstens zwei Nachkommastellen eingeben."
-    : !rulesValid
-      ? "Small Blind, Big Blind und kleinsten Chip konsistent eintragen."
-      : advice({
-          ...s,
-          hero: hero(),
-          board: b,
-          opponents: enemies(),
-          position: $("position").value,
-          situation: $("situation").value,
-          limpers:
-            $("limpers").value === "" ? null : Number($("limpers").value),
-          rules: $("rules").checked,
-          special: $("special").checked,
-          worseCalls: $("worseCalls").checked,
-        });
-  if (s.pot === null || s.call === null || s.pot + s.call <= 0) {
-    $("threshold").textContent =
-      "Pot und zusätzlichen Call als nichtnegative Eurobeträge mit positivem Endpot eintragen.";
-    $("call-result").textContent = "Noch keine Callbewertung.";
-    return;
-  }
-  if ($("special").checked || !$("rules").checked) {
-    $("threshold").textContent =
-      "Gewinnbaren Pot und Hausregeln zuerst klären.";
-    callSummary = "All-in / Nebenpot / Regeln: individuell prüfen.";
-    $("call-result").textContent =
-      "Einfache Callformel für diese Situation ausgesetzt.";
-    return;
-  }
-  $("threshold").textContent =
-    `Mathematischer Preis: ${euros(s.call)} zusätzlich in ${euros(s.pot)} gewinnbaren Pot. Nötiger Potanteil: ${pc(s.call / (s.pot + s.call))}.`;
-  const qText = $("q").value.trim(),
-    qValid = /^\d+(?:[.,]\d+)?$/.test(qText),
-    q = qText
-      ? qValid
-        ? Number(qText.replace(",", ".")) / 100
-        : NaN
-      : current?.equity;
-  if (qText && (!Number.isFinite(q) || q < 0 || q > 1)) {
-    $("call-result").textContent =
-      "Potanteil muss zwischen 0 und 100 % liegen.";
-    return;
-  }
-  if (s.stack !== null && s.call > s.stack) {
-    $("call-result").textContent =
-      "Call übersteigt die spielbaren Chips; All-in und Nebenpot gesondert prüfen.";
-    return;
-  }
-  if (!$("closing").checked) {
-    callSummary = "Callgrenze offen: weitere Zahlungen möglich.";
-    $("call-result").textContent =
-      "Weitere Zahlungen sind möglich oder noch ungeklärt. Der Callpreis allein erlaubt keinen Vergleich mit einer bis zum River berechneten Equity.";
-    return;
-  }
-  if (!Number.isFinite(q)) {
-    $("call-result").textContent =
-      "Eine aktuelle Kartenrechnung oder eine eigene begründete Potanteil-Schätzung fehlt.";
-    return;
-  }
-  const calculation = callPrice(s.pot, s.call, q);
-  if (
-    s.stack !== null &&
-    s.chip > 0 &&
-    !invalid.length &&
-    rulesValid &&
-    s.bb > 0 &&
-    s.bb % s.chip === 0 &&
-    [s.pot, s.call, s.stack].every((v) => v % s.chip === 0)
-  ) {
-    if (qText || completed) {
-      const bound = qText ? q : Math.max(0, q - (current?.halfWidth || 0));
-      const cap = callCeiling(s.pot, bound, s.chip, s.stack);
-      callSummary = `${qText ? "Deine Schätzung" : "Zufallsmodell"}: Call höchstens ${euros(cap)}${cap === s.stack ? " (Reststack)" : ""}. Kein Optimum.`;
-    } else callSummary = "Callgrenze: Schlussrechnung abwarten.";
-  }
-  $("call-result").textContent =
-    `${qText ? "Mit deiner eigenen Schätzung" : "Nur als Zufallsgegner-Modellbeispiel"} (${pc(q)}): Erwartungswert ${euros(calculation.ev)}. ${qText ? (calculation.ev > 0 ? "Im angegebenen Modell rechnerisch günstiger Call; Qualität der Schätzung bleibt entscheidend." : calculation.ev < 0 ? "Im angegebenen Modell ist Aussteigen rechnerisch günstiger als Mitgehen." : "Rechnerisch neutral, kein Puffer für Schätzfehler.") : "Keine automatische Call-Empfehlung gegen einen tatsächlichen Einsatz."}`;
-}
-document
-  .querySelectorAll("#spielhilfe input, #spielhilfe select")
-  .forEach((el) => el.addEventListener("input", updateAdvice));
 $("new-hand").disabled = false;
 $("opponents").disabled = false;
 renderCards();

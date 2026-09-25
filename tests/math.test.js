@@ -12,13 +12,7 @@ import {
 import { evaluate, bestFive, categoryOf } from "../src/evaluator.js";
 import { random, simulate, potShare, validateScenario } from "../src/equity.js";
 import { drawOuts, outsProbability } from "../src/draws.js";
-import {
-  money,
-  callPrice,
-  minimumRaise,
-  advice,
-  openingHand,
-} from "../src/strategy.js";
+import { money } from "../src/strategy.js";
 const data = JSON.parse(
   readFileSync("data/preflop.json", "utf8").replace(/^\uFEFF/, ""),
 );
@@ -190,68 +184,10 @@ test("draw events count intersecting cards once; hit probability is not equity",
   assert.throws(() => outsProbability(48, 3));
   assert.equal(drawOuts(c("Ah Kh"), c("Qh Jh Th")).flush.length, 0);
 });
-test("money, call EV boundaries, raise totals and guarded strategy", () => {
+test("estimated money accepts comma and rejects negative or overprecise input", () => {
   assert.equal(money("0,20"), 20);
   assert.equal(money(" 1.20 "), 120);
   assert.equal(money(""), null);
   assert.equal(money("-1"), null);
   assert.equal(money("1.234"), null);
-  assert.deepEqual(callPrice(300, 100, 0.25), { required: 0.25, ev: 0 });
-  assert.ok(Math.abs(callPrice(300, 100, 0.35).ev - 40) < 1e-10);
-  assert.equal(callPrice(300, 100, 0).ev, -100);
-  assert.equal(callPrice(300, 100, 1).ev, 300);
-  assert.throws(() => callPrice(0, 0, 0.5));
-  assert.throws(() => callPrice(100, 20, 1.01));
-  assert.equal(minimumRaise(60, 40, 20), 100);
-  assert.equal(60 - 20, 40);
-  const s = {
-    hero: c("As Ad"),
-    board: [],
-    opponents: 5,
-    rules: true,
-    bb: 20,
-    chip: 10,
-    paid: 0,
-    stack: 1000,
-    call: 20,
-    pot: 30,
-    position: "early",
-    situation: "unopened",
-  };
-  assert.match(advice(s), /insgesamt 0,60/);
-  assert.match(
-    advice({
-      ...s,
-      paid: 20,
-      call: 0,
-      position: "bb",
-      situation: "limped",
-      limpers: 3,
-    }),
-    /insgesamt 1,20/,
-  );
-  assert.match(advice({ ...s, opponents: 0 }), /sofort/);
-  assert.match(advice({ ...s, stack: 50 }), /All-in/);
-  assert.match(advice({ ...s, special: true }), /Nebenpot/);
-  assert.match(advice({ ...s, stack: null }), /fehlen/);
-  assert.match(
-    advice({ ...s, situation: "raised", highest: 60, lastRaise: 40, call: 60 }),
-    /insgesamt 1,00/,
-  );
-  assert.equal(openingHand(c("7s 2h"), "button"), false);
-  for (const [pot, bet] of [
-    [120, "0,60"],
-    [240, "1,20"],
-    [480, "2,40"],
-  ])
-    assert.ok(
-      advice({
-        ...s,
-        hero: c("Qs Qc"),
-        board: c("Qh 9h 2c"),
-        call: 0,
-        pot,
-        worseCalls: true,
-      }).includes(bet),
-    );
 });

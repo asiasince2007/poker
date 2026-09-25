@@ -17,54 +17,65 @@ async function setup(page) {
   await choose(page, "Flopkarte 2", "9", "Herz");
   await choose(page, "Flopkarte 3", "2", "Kreuz");
 }
-test("private by default; independent controls, inferred information, all-hide and reset", async ({
+test("own cards concealed; board and equity visible until explicitly hidden", async ({
   page,
 }) => {
   await setup(page);
   await expect(
     page.getByRole("button", { name: "Handkarte 1: gesetzt, verdeckt" }),
   ).toBeVisible();
-  await expect(page.locator("#hero-cards")).not.toContainText("A");
+  await expect(page.locator("#board-cards")).toContainText("Q");
+  await expect(page.locator("#current-hand")).toBeVisible();
+  await expect(page.locator("#result")).toBeVisible();
+  await expect(page.locator("#toggle-board")).toHaveText("Verbergen");
+  await expect(page.locator("#toggle-equity")).toHaveText("Verbergen");
+  await page.locator("#toggle-board").click();
   await expect(page.locator("#board-cards")).not.toContainText("Q");
-  await expect(page.locator("#current-hand")).toBeHidden();
+  await expect(page.locator("#result")).toBeVisible();
+  await page.locator("#toggle-equity").click();
   await expect(page.locator("#result")).toBeHidden();
   await expect(page.locator("#quick-advice")).toBeHidden();
-  await expect(page.locator("#quick-call")).toBeHidden();
   await page.locator("#show-details").click();
   await expect(page.locator("#calculation-details")).toBeHidden();
   await page.locator("#close-analysis").click();
-  await page.locator("#toggle-hero").click();
-  await expect(
-    page.getByRole("button", { name: "Handkarte 1: Ass Herz" }),
-  ).toBeVisible();
-  await expect(page.locator("#result")).toBeHidden();
-  await page.locator("#toggle-equity").click();
-  await expect(page.locator("#current-hand")).toContainText("Hohe Karte");
-  await expect(page.locator("#board-cards")).not.toContainText("Q");
-  await page.locator("#toggle-board").click();
-  await expect(
-    page.getByRole("button", { name: "Flopkarte 1: Dame Herz" }),
-  ).toBeVisible();
-  await page.locator("#hide-all").click();
-  await expect(page.locator("#result")).toBeHidden();
-  await expect(page.locator("#current-hand")).toBeHidden();
-  await page.locator("#opponents").selectOption("0");
-  await expect(page.locator("#current-hand")).toBeHidden();
-  await page.locator("#opponents").selectOption("2");
-  await page.locator("#toggle-equity").click();
   await page.locator("#new-hand").click();
   await expect(page.locator("#toggle-equity")).toHaveAttribute(
     "aria-pressed",
+    "true",
+  );
+  await expect(page.locator("#toggle-board")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.locator("#toggle-hero")).toHaveAttribute(
+    "aria-pressed",
     "false",
   );
+  await setup(page);
+  await page.locator("#toggle-hero").click();
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      get: () => true,
+      configurable: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator("#toggle-hero")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.locator("#result")).toBeVisible();
+  await expect(page.locator("#board-cards")).toContainText("Q");
+  await page.locator("#hide-all").click();
+  await expect(page.locator("#result")).toBeHidden();
+  await expect(page.locator("#board-cards")).not.toContainText("Q");
 });
 test("compact monochrome overview fits 430×740 with results", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 430, height: 740 });
   await setup(page);
-  for (const id of ["hero", "board", "equity"])
-    await page.locator("#toggle-" + id).click();
+  for (const id of ["hero"]) await page.locator("#toggle-" + id).click();
   await expect(page.locator("#public-status")).toContainText(
     "1.000.000 Austeilungen",
   );
@@ -74,7 +85,7 @@ test("compact monochrome overview fits 430×740 with results", async ({
     "board-cards",
     "opponents",
     "result",
-    "edit-situation",
+    "quick-advice",
     "samples",
     "save-hand",
   ])
@@ -108,6 +119,7 @@ test("5 million mode, result masks do not interrupt calculation, exact flop mode
   page,
 }) => {
   await setup(page);
+  await page.locator("#toggle-equity").click();
   await page.locator("#samples").selectOption("5000000");
   await expect(page.locator("#public-status")).toContainText(
     "5.000.000 Austeilungen",
@@ -120,44 +132,47 @@ test("5 million mode, result masks do not interrupt calculation, exact flop mode
   await page.locator("#toggle-equity").click();
   await expect(page.locator("#result")).toContainText("Exakt im Zufallsmodell");
 });
-test("conditional max call, no bound with future payments, compact euro action", async ({
+test("automatic tiers need no monetary input; hand changes remove stale advice", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 430, height: 740 });
-  await page.goto("./");
-  await choose(page, "Handkarte 1", "Ass", "Pik");
-  await choose(page, "Handkarte 2", "Ass", "Herz");
-  await page.locator("#toggle-equity").click();
-  await page.locator("#edit-situation").click();
-  for (const [id, val] of Object.entries({
-    pot: "0,30",
-    call: "0,20",
-    paid: "0",
-    stack: "10",
-  }))
-    await page.locator("#" + id).fill(val);
-  await page.locator("#position").selectOption("early");
-  await page.locator("#situation").selectOption("unopened");
-  await page.locator("#close-situation").click();
-  await expect(page.locator("#quick-advice")).toContainText("insgesamt 0,60");
-  await page.locator("#edit-situation").click();
-  await page.locator("#pot").fill("3");
-  await page.locator("#call").fill("1");
-  await page.locator("#q").fill("35");
-  await page.locator("#closing").check();
-  await page.locator("#close-situation").click();
-  await expect(page.locator("#quick-call")).toContainText("1,60");
-  expect(
-    await page
-      .locator("#rechner")
-      .evaluate((e) => e.getBoundingClientRect().bottom),
-  ).toBeLessThanOrEqual(740);
-  await page.locator("#edit-situation").click();
-  await page.locator("#closing").uncheck();
-  await page.locator("#close-situation").click();
-  await expect(page.locator("#quick-call")).toContainText("weitere Zahlungen");
-  await page.locator("#edit-situation").click();
-  await page.locator("#special").check();
-  await page.locator("#close-situation").click();
-  await expect(page.locator("#quick-call")).not.toContainText("1,60");
+  await setup(page);
+  await expect(page.locator("#public-status")).toContainText(
+    "1.000.000 Austeilungen",
+  );
+  await expect(page.locator("#quick-advice")).toContainText("1,20");
+  await expect(page.locator("#quick-note")).not.toContainText("Vorläufig");
+  await expect(
+    page.locator("#edit-situation, #situation-dialog, #pot, #call, #stack"),
+  ).toHaveCount(0);
+  await choose(page, "Turn", "Bube", "Herz");
+  await choose(page, "River", "Zehn", "Herz");
+  await page.locator("#opponents").selectOption("1");
+  await expect(page.locator("#result")).toContainText("Exakt im Zufallsmodell");
+  await expect(page.locator("#quick-advice")).toContainText("2,40");
+  await page.locator("#opponents").selectOption("0");
+  await expect(page.locator("#quick-advice")).toHaveText("Pot gewonnen");
+  await page.locator("#new-hand").click();
+  await expect(page.locator("#quick-advice")).toHaveText("Potanteil abwarten");
+  await choose(page, "Handkarte 1", "2", "Kreuz");
+  await choose(page, "Handkarte 2", "3", "Karo");
+  for (const [slot, rank] of [
+    ["Flopkarte 1", "Ass"],
+    ["Flopkarte 2", "König"],
+    ["Flopkarte 3", "Dame"],
+    ["Turn", "Bube"],
+    ["River", "Zehn"],
+  ])
+    await choose(page, slot, rank, "Pik");
+  await page.locator("#opponents").selectOption("2");
+  await expect(page.locator("#public-status")).toContainText(
+    "1.000.000 Austeilungen",
+  );
+  await expect(page.locator("#quick-advice")).toContainText("0,60");
+  await page.locator("#opponents").selectOption("5");
+  await expect(page.locator("#public-status")).toContainText(
+    "1.000.000 Austeilungen",
+  );
+  await expect(page.locator("#quick-advice")).toContainText(
+    "Schieben / nicht erhöhen",
+  );
 });

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { random, simulate } from "../src/equity.js";
 import { parseCards as c } from "../src/cards.js";
-import { advice, callCeiling, callPrice } from "../src/strategy.js";
+import { equityHint } from "../src/strategy.js";
 
 test("PRNG preserves modular state beyond the JavaScript safe-integer boundary", () => {
   const seed = 20260925,
@@ -65,45 +65,21 @@ test("million and five-million precision reach requested n with lower estimated 
   assert.ok(d.equity > 0.56 && d.equity < 0.6);
   assert.throws(() => simulate({ ...scenario, n: 5000001 }));
 });
-test("fixed-pot call ceiling: rounding, stack, boundaries, lower q", () => {
-  assert.equal(callCeiling(300, 0.25, 10, 1000), 100);
-  assert.equal(callCeiling(300, 0.35, 10, 1000), 160);
-  assert.ok(callPrice(300, 160, 0.35).ev >= 0);
-  assert.ok(callPrice(300, 170, 0.35).ev < 0);
-  assert.equal(callCeiling(300, 0.35, 10, 120), 120);
-  assert.equal(callCeiling(300, 0, 10, 1000), 0);
-  assert.equal(callCeiling(300, 1, 10, 1000), 1000);
-  assert.ok(
-    callCeiling(300, 0.34, 10, 1000) <= callCeiling(300, 0.35, 10, 1000),
-  );
-  for (const q of [-1, 1.1, NaN])
-    assert.throws(() => callCeiling(300, q, 10, 1000));
-  assert.throws(() => callCeiling(300, 0.5, 0, 1000));
-});
-test("postflop value orientation covers turn and river without betting board-only strength", () => {
-  const s = {
-    hero: c("Qs Qh"),
-    board: c("Qd 9c 2h 4s"),
-    opponents: 2,
-    rules: true,
-    special: false,
-    bb: 20,
-    chip: 10,
-    paid: 0,
-    stack: 1000,
-    call: 0,
-    pot: 300,
-    worseCalls: true,
-  };
-  assert.match(advice(s), /1,50.*setzen/);
-  assert.match(advice({ ...s, board: c("Qd 9c 2h 4s 4c") }), /1,50.*setzen/);
-  assert.match(advice({ ...s, worseCalls: false }), /schieben/);
-  assert.match(
-    advice({ ...s, hero: c("As Ah"), board: c("Qd 9c 2h 4s 4c") }),
-    /schieben/,
-  );
-  assert.match(
-    advice({ ...s, hero: c("2c 3d"), board: c("As Ks Qs Js Ts") }),
-    /vollständig auf dem Tisch/,
-  );
+test("percentage tiers agree with displayed rounding and reject unknown equity", () => {
+  for (const [q, cents] of [
+    [0, 0],
+    [0.2494, 0],
+    [0.2495, 60],
+    [0.25, 60],
+    [0.4994, 60],
+    [0.4995, 120],
+    [0.5, 120],
+    [0.7494, 120],
+    [0.7495, 240],
+    [0.75, 240],
+    [1, 240],
+  ])
+    assert.equal(equityHint(q), cents);
+  for (const q of [null, undefined, NaN, -1, 1.01, Infinity])
+    assert.equal(equityHint(q), null);
 });
