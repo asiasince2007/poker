@@ -2,13 +2,13 @@
 
 Deutsche Texas-Hold’em-Web-App für schnelle Handyeingaben. [Website öffnen](https://asiasince2007.github.io/poker/).
 
-Kompakte schwarz-weiß-graue Hauptansicht mit „Aktuell“ ganz oben. Eigene Karten, Tischkarten und Ergebnis sind zunächst verdeckt; je „Zeigen“ blendet den gewünschten Bereich ein. „Alles verdecken“ und ein Appwechsel verdecken wieder. Karten bleiben auch verdeckt antippbar.
+Kompakte schwarz-weiß-graue Hauptansicht mit „Aktuell“ ganz oben. Eigene Karten starten verdeckt; Tischkarten und Ergebnis sind standardmäßig sichtbar. Die Sichtschalter und „Alles verdecken“ verbergen auf Wunsch. Ein Appwechsel verdeckt nur eigene Karten und schließt den privaten Verlauf, ohne die Sichtbarkeit von Tischkarten und Ergebnis zu ändern. „Neue Hand“ stellt die Startsichtbarkeit wieder her. Karten bleiben auch verdeckt antippbar.
 
 Bis zu acht aktive Gegner. Die ausgewählte Hand wird für die tatsächliche Gegnerzahl berechnet; die historische Starthand-Referenztabelle enthält nur 1–5 Gegner und ist für 6–8 ausdrücklich als 5-Gegner-Referenz gekennzeichnet.
 
 „Hand speichern“ erfasst die eigenen Karten, optionale Tischkarten, gewonnen/verloren/geteilt sowie einen optionalen Schätzbetrag. Gewinn/Teilung meint die eigene gesamte Auszahlung inklusive Einsatz, Verlust den verlorenen eigenen Einsatz. Gespeichert wird ausschließlich im lokalen Browserspeicher. „Gespeicherte Hände“ zeigt einen zunächst verdeckten Verlauf, Häufigkeiten nach Starthand und einen JSON-Export; keine erfundene Nettobilanz. Wiederholtes Speichern aktualisiert dieselbe Hand, „Neue Hand“ beginnt einen neuen Eintrag. Browserdaten löschen oder Privatmodus können Daten entfernen; für längere Aufbewahrung exportieren.
 
-Zwei konkrete Handkarten auswählen, dann den tatsächlichen Flop im selben Rechner ergänzen. Optional Turn und River hinzufügen. Gegnerzahl meint nur Gegner, die noch in der Hand sind. Die berechnete Equity ist der erwartete Potanteil gegen zufällige Gegner, keine Vorhersage gegen eine bestimmte Setzauswahl. Bedingte Euro-Hilfe neben dem Potanteil, Eingaben über „Einsatzangaben“: Spielsituation ausdrücklich eingeben, mathematischen Callpreis getrennt von Strategie lesen.
+Zwei konkrete Handkarten auswählen, dann den tatsächlichen Flop im selben Rechner ergänzen. Optional Turn und River hinzufügen. Gegnerzahl meint nur Gegner, die noch in der Hand sind. Die berechnete Equity ist der erwartete Potanteil gegen zufällige Gegner, keine Vorhersage gegen eine bestimmte Setzauswahl. Automatische Prozent-Faustregel ohne Einsatzangaben: unter 25 % nicht erhöhen, ab 25 % +0,60 €, ab 50 % +1,20 €, ab 75 % +2,40 €. Es zählt der angezeigte gerundete Potanteil. Die Stufen sind frei festgelegt, keine berechnete optimale Strategie oder sichere Callgrenze. Schieben geht nur ohne offenen Einsatz; Mitgehen und Erhöhen sind verschiedene Aktionen. Die frühere Eingabemaske und Einsatzlogik sind entfernt und im Git-Stand 4221e685d8cfed9229009461961b68cadc662535 nachvollziehbar.
 
 ## Lokal entwickeln und prüfen
 
@@ -30,7 +30,7 @@ npm run test:browser
 
 - `src/cards.js`, `evaluator.js`: Kartenkodierung und Handvergleich.
 - `src/equity.js`, `worker.js`, `draws.js`: Simulation mit 1 oder 5 Mio. Austeilungen, exakte Heads-up-Auswertung ab dem Flop und definierte Trefferereignisse.
-- `src/strategy.js`: Geldvalidierung, Callformeln, ausdrücklich vereinfachte Regeln.
+- `src/strategy.js`: Betragsvalidierung für den Verlauf und feste Prozent-Faustregel.
 - `src/main.js`, `style.css`, `index.html`: Oberfläche, Zustände, Erläuterungen.
 - `data/preflop.json`: einzige öffentliche Starthandstatistik; Rangliste und Einzelwerte teilen dieselbe Quelle.
 - `tests`: exhaustive mathematische, unabhängige Vergleichs- und Browserprüfungen.
@@ -53,4 +53,4 @@ npm run test:browser
 
 ## Grenzen
 
-Vereinfachte Anfängerheuristiken, keine optimale Strategie und kein Gegnerprofil. Keine automatische All-in-/Nebenpotberechnung. Die gespeicherte Preflop-Referenz enthält nur Equity. Die Live-Berechnung der ausgewählten Hand liefert zusätzlich getrennte Sieg-/Teilungsquoten. Standard: 1 Mio., optional 5 Mio. Austeilungen; gegen einen Gegner nach dem Flop exakt. Statistische Unsicherheit ist von Modellunsicherheit zu unterscheiden. Ein physisches iPhone muss separat abgenommen werden.
+Frei festgelegte Prozentstufen, keine optimale Strategie und kein Gegnerprofil. Keine automatische All-in-/Nebenpotberechnung. Die gespeicherte Preflop-Referenz enthält nur Equity. Die Live-Berechnung der ausgewählten Hand liefert zusätzlich getrennte Sieg-/Teilungsquoten. Standard: 1 Mio., optional 5 Mio. Austeilungen; gegen einen Gegner nach dem Flop exakt. Statistische Unsicherheit ist von Modellunsicherheit zu unterscheiden. Ein physisches iPhone muss separat abgenommen werden.

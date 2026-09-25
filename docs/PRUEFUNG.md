@@ -1,37 +1,25 @@
 # Prüfumfang und Abnahme
 
-Stand: 25.09.2026. Die ausführbaren Tests sind maßgeblich; ein bestandener Desktop-/WebKit-Test ist kein Nachweis für ein physisches iPhone.
+Stand: 25.09.2026. Die ausführbaren Tests sind maßgeblich. WebKit ist kein physischer iPhone-Test.
 
-## Mathematik
+## Rechenmodell und Speicherung
 
-- Vollständige Enumeration aller 2.598.960 Fünfkartenhände: Kategoriehäufigkeiten `[1302540, 1098240, 123552, 54912, 10200, 5108, 3744, 624, 40]` von hoher Karte bis Straight Flush.
-- 4.000 reproduzierbare zufällige Vergleiche zweier Siebenkartenhände gegen die unabhängige Bibliothek pokersolver. Zusätzlich jede erste Hand gegen explizite Fünfer-Teilmengen reduziert.
-- Alle 1.326 konkreten Startpaare, 169 Klassen, Häufigkeiten 6/4/12, alle 845 Datenwerte und Gegnerzuordnungen geprüft.
-- 12 frische Preflop-Simulationen: AA, KK, AKs, AKo, 98s, 72o gegen je 1 und 5 Gegner; 30.000 Austeilungen pro Fall. Vorab festgelegte Toleranz: 5 × sqrt(0,25/30000 + 0,25/100000), ungefähr 1,65 Prozentpunkte. Feste Seeds, keine nachträglich angepassten Erwartungen.
-- Ass niedrig/hoch, ungültiges QKA23, Kicker, Full-House-Reihenfolge, zwei Drillinge, Board spielt vollständig, Royal Flush, 2-/3-/6-fache Teilungen, Kartenfehler, Gegnergrenzen, deterministische Flops, exakte River-Enumeration.
-- Draw-Überschneidung 9+8−2=15, 47-/46-Karten-Nenner, Call-EV bei 0/25/35/100 %, Mindest-Raise 0,60→1,00 €, bereits bezahlt versus zusätzlich, half-pot Beispiele und Stack-/Nebenpot-Sperren.
+Vollständige Enumeration aller 2.598.960 Fünfkartenhände, 4.000 reproduzierbare Vergleiche gegen pokersolver, alle 1.326 Startkombinationen und 169 Klassen. Gespeicherte Referenzwerte gegen unabhängige Simulationen geprüft. Exakte Heads-up-Auswertung, Flop-/Turn-Anzahlen, 1-/5-Mio.-Zielgrößen, PRNG-Zustand nach sechs Millionen Ziehungen, neunfache Potteilung. Speicherprüfungen decken optionale/unvollständige Tischkarten, Aktualisierung ohne Duplikat, getrennte Bruttoauszahlungen/verlorene Einsätze, beschädigte Daten und gesperrten/vollen Speicher ab.
 
-## Browser und Oberfläche
+## Oberfläche und Prozentstufen
 
-Produktionsbuild, Unterpfad `/poker/`, Playwright 1.58.2; Chromium 145 und WebKit 26.0. Mobile Touch-Ansicht 430×932; zusätzliche Breiten 320 und 1280. Verkleinerter Viewport 430×480 prüft Scroll-/Eingabebedienung bei geringer Höhe, simuliert jedoch keine echte iOS-Tastatur.
+Produktionsbuild unter /poker/, Chromium und WebKit, mobile Ansicht 430×932 sowie Hauptansicht 430×740 mit sichtbarer Faustregel. Breiten 320/430/1280 und kleiner Viewport 430×480. Speicherung, Wiederladen, Export, Löschen, negative Eingabe und Fehlerbehandlung. Bis acht Gegner, schnelle Änderungen, Worker-Abbruch, fehlgeschlagener Worker, blockiertes Skript und JavaScript-aus.
 
-Abgedeckt: Start, zwei Handkarten, vollständiger/unvollständiger Flop, Karten ändern/entfernen, doppelte Karten gesperrt, Gegnerzahl, Rangliste, Worker-Abbruch bei schnellen Änderungen, neue Hand ohne erfundenen Reststack, negative/leere Eingaben, Prozentgrenzen, Call-Bedingungen, Regelgrenzen, absichtlicher Worker-Ladefehler, blockiertes Hauptskript, ausgeschaltetes JavaScript, Turn/River, exakte Rechnung, kein Gegner, horizontaler Überlauf. Fehler müssen erklärt werden; veraltete Berechnungen dürfen nicht zurückkehren.
+Prozentstufen an 25/50/75 % und Rundungsgrenzen geprüft; ungültige oder fehlende Equity liefert keinen Betrag. Browserfälle zeigen alle vier Stufen, entfernen alte Empfehlungen bei neuer Hand/Fehler, bestätigen null Gegner und prüfen, dass keine Einsatzmaske mehr vorhanden ist. Ein geteilter Royal Flush testet ausdrücklich den Potanteil statt der Alleinsiegquote. Die Tests bestätigen die Implementierung der frei festgelegten Stufen, nicht deren strategische Güte.
 
-Ein beim ersten Test gefundener Unterschied zwischen automatischer Eingabefüllung und sichtbarer Scrollposition nach Viewportwechsel wird im Abnahmetest ausdrücklich durch Scrollen und Antippen geprüft. Das behauptet keine automatische iOS-Tastatursteuerung. JavaScript-aus wird in einer eigenen Browserkonfiguration getestet.
+Eigene Karten starten verdeckt, Tischkarten/Ergebnis sichtbar. Unabhängige Sichtschalter, „Alles verdecken“, Neustart der Hand und visibilitychange-Ereignis geprüft. Beim Appwechsel bleiben Tischkarten/Ergebnis wie eingestellt; eigene Karten werden verdeckt und private Dialoge geschlossen. Die Ereignisprüfung ersetzt keinen echten iOS-Appwechsel.
 
-## Kompakte Präzisionsfassung
+## Kurzer Test auf dem iPhone 14 Pro Max
 
-Zusätzliche Tests: PRNG-Zustand nach sechs Millionen Ziehungen gegen eine unabhängige BigInt-Zustandsrechnung, exakte Flop-/Turn-Anzahlen und Royal-Flush-Sicherheitsfälle, keine Equity aus deterministischen Enumerationspräfixen, 1-Mio.- und 5-Mio.-Zielgrößen mit sinkendem Fehler, feste-Pot-Callgrenzen inklusive q=0/1, Chiprundung und Reststack. Browser: unabhängiges Verdecken aller drei Bereiche, keine sichtbaren abgeleiteten Angaben, Reset, Berechnung bei verdecktem Ergebnis, 5-Mio.-Modus, exakte Floprechnung und bedingte Kurzempfehlungen. Hauptansicht bei 430×740 geprüft, um gegenüber 430×932 Platz für Browserleisten zu lassen. Schrift und Farben bewusst zurückhaltend; Eingaben bleiben mit 16-px-Schrift, interaktive Ziele mindestens 44 px hoch.
+1. HTTPS-Website in Safari neu laden. A♥ K♥ eingeben: eigene Karten verdeckt, Potanteil und Faustregel erscheinen direkt. Tisch- und Ergebnisschalter heißen „Verbergen“.
+2. Gegnerzahl 2 und Q♥ 9♥ 2♣ ergänzen: ungefähr 58 % und Richtbetrag +1,20 €. Kein weiteres Formular. Unvollständiger Flop darf keine alte Stufe anzeigen.
+3. Tischkarten und Ergebnis getrennt verbergen/zeigen. App wechseln: eigene Karten verdeckt, Board/Ergebnis wie vorher eingestellt. „Alles verdecken“ muss alles verbergen. „Neue Hand“ stellt die Standardansicht her.
+4. „Hand speichern“: Ergebnis und optionalen Schätzbetrag eintragen. Verlauf bleibt nach Neuladen erhalten; zunächst verdeckt, Export/Löschen weiterhin erreichbar. Bei geöffneter Tastatur müssen Betragsfeld und Speichern erreichbar sein.
+5. Acht Gegner und optional fünf Millionen Austeilungen ausprobieren. Ergebnis und Faustregel bleiben auf der Hauptansicht erreichbar.
 
-## iPhone 14 Pro Max: kurzer echter Gerätetest
-
-Erweiterung: acht aktive Gegner einschließlich neunfacher Potteilung geprüft. Speicherprüfung für optionale/unvollständige Tischkarten, Aktualisierung ohne Duplikat, Neuladen, verdeckten Verlauf, Export, Löschen, ungültige Beträge, getrennte Bruttoauszahlungen/verlorene Einsätze, beschädigte Daten und gesperrten/vollen Speicher. Sichtschutz bei `visibilitychange` wird zusätzlich als Ereignisbehandlung geprüft; das ersetzt keinen echten iOS-Appwechsel.
-
-1. Website über HTTPS in Safari öffnen; keine heruntergeladene HTML-Datei verwenden. Oben muss der Rechner mit einer verständlichen Eingabeaufforderung erscheinen.
-2. A♥ und K♥ auswählen: Karten und Ergebnis bleiben verdeckt. „Zeigen“ bei eigenen Karten und beim Potanteil antippen; oben erscheint die aktuelle Einordnung. Gegner auf 2 stellen.
-3. Q♥ und 9♥ ergänzen: „Flop noch unvollständig“, keine alte Prozentzahl. Dann 2♣ wählen: Rechnung bis 1.000.000, ungefähr 58 % gegen zwei Zufallsgegner. Handkarten bleiben erhalten. Die Hauptansicht einschließlich Ergebnis, Sichtschaltern und Einsatzangaben soll ohne Scrollen sichtbar sein. Optional 5 Mio. wählen.
-4. Eine bereits verwendete Karte erneut wählen wollen: gesperrt. Eine Flopkarte ändern und sofort Gegnerzahl wechseln: nur der neue Stand darf bleiben.
-5. „Einsatzangaben“ öffnen. Pot 3, Call 1: 25 % Callpreis. Ohne Abschlussbestätigung keine endgültige EV-Entscheidung. Mit Bestätigung und eigener Schätzung 35: +0,40 € im Modell. Die Eingabe muss mit geöffneter Tastatur erreichbar sein.
-6. „Alles verdecken“ sowie Appwechsel prüfen; Ergebnis, Handrang und Empfehlungen verschwinden. „Neue Hand“: Karten, Geld und eigene Schätzung leer, Blinds unverändert, Sichtbarkeit wieder verdeckt. Neu laden und die Standkennung am Seitenende prüfen.
-
-Physischer Gerätetest: offen, vom Nutzer durchzuführen. Die Ursache des weißen Ergebnisbereichs der alten lokalen HTML-Datei wurde nicht nachgewiesen und wird durch diese Neuimplementierung nicht rückwirkend erklärt.
+Physischer Gerätetest offen. Die früheren Tests der entfernten Einsatzmaske sind im Git-Commit 4221e685d8cfed9229009461961b68cadc662535 archiviert und gehören nicht mehr zur aktiven Oberfläche.

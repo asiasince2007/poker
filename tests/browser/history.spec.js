@@ -90,7 +90,6 @@ test("storage failure is explicit and does not break calculator", async ({
     "Nicht gespeichert",
   );
   await page.locator("#close-save").click();
-  await page.locator("#toggle-equity").click();
   await expect(page.locator("#result")).toContainText("%");
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
@@ -99,7 +98,7 @@ test("storage failure is explicit and does not break calculator", async ({
     });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  await expect(page.locator("#result")).toBeHidden();
+  await expect(page.locator("#result")).toBeVisible();
 });
 test("eight opponents compute preflop and river without borrowing five-opponent equity", async ({
   page,
@@ -108,7 +107,6 @@ test("eight opponents compute preflop and river without borrowing five-opponent 
   page.on("pageerror", (e) => errors.push(e.message));
   await setup(page);
   await page.locator("#opponents").selectOption("8");
-  await page.locator("#toggle-equity").click();
   await expect(page.locator("#public-status")).toContainText(
     "1.000.000 Austeilungen",
   );

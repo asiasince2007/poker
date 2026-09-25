@@ -21,8 +21,6 @@ test.beforeEach(async ({ page }) => {
     "Wähle deine zwei Karten",
   );
   await page.locator("#toggle-hero").click();
-  await page.locator("#toggle-board").click();
-  await page.locator("#toggle-equity").click();
 });
 test("preflop → incomplete flop → actual flop, edits, removal, new hand", async ({
   page,
@@ -49,15 +47,10 @@ test("preflop → incomplete flop → actual flop, edits, removal, new hand", as
     .getByRole("button", { name: "Karte entfernen", exact: true })
     .click();
   await expect(page.locator("#result")).toContainText("unvollständig");
-  await page.locator("#edit-situation").click();
-  await page.locator("#stack").fill("8,70");
-  await page.locator("#close-situation").click();
   await page.getByRole("button", { name: "Neue Hand" }).click();
   await expect(page.locator("#result")).toContainText(
     "Wähle deine zwei Karten",
   );
-  await expect(page.locator("#stack")).toHaveValue("");
-  await expect(page.locator("#bb")).toHaveValue("0,20");
   expect(errors).toEqual([]);
 });
 test("duplicates disabled, rank 169 completeness, opponent effects", async ({
@@ -95,39 +88,6 @@ test("fast changes terminate worker and never restore stale output", async ({
   await expect(page.locator("#street")).toHaveText("Vor dem Flop");
   await expect(page.locator("#current-hand")).toContainText("AKs");
 });
-test("call validation, zero and 100%, future costs, euro recommendations", async ({
-  page,
-}) => {
-  await hand(page);
-  await page.locator("#edit-situation").click();
-  await page.locator("#pot").fill("3");
-  await page.locator("#call").fill("1");
-  await expect(page.locator("#threshold")).toContainText("25,0 %");
-  await expect(page.locator("#call-result")).toContainText("Weitere Zahlungen");
-  await page.locator("#closing").check();
-  await page.locator("#q").fill("35");
-  await expect(page.locator("#call-result")).toContainText("0,40");
-  await page.locator("#q").fill("0");
-  await expect(page.locator("#call-result")).toContainText("-1,00");
-  await page.locator("#q").fill("100");
-  await expect(page.locator("#call-result")).toContainText("3,00");
-  await page.locator("#q").fill("101");
-  await expect(page.locator("#call-result")).toContainText(
-    "zwischen 0 und 100",
-  );
-  await page.locator("#pot").fill("-2");
-  await expect(page.locator("#advice")).toContainText("Ungültiger");
-  await expect(page.locator("#call-result")).toContainText("Noch keine");
-  await page.locator("#pot").fill("0,30");
-  await page.locator("#call").fill("0,20");
-  await page.locator("#paid").fill("0");
-  await page.locator("#stack").fill("10");
-  await page.locator("#position").selectOption("early");
-  await page.locator("#situation").selectOption("unopened");
-  await expect(page.locator("#advice")).toContainText("insgesamt 0,60");
-  await page.locator("#special").check();
-  await expect(page.locator("#call-result")).toContainText("ausgesetzt");
-});
 test("worker failure visible, never blank", async ({ page }) => {
   await page.route("**/*worker*.js", (route) => route.abort());
   await hand(page);
@@ -158,12 +118,12 @@ test("no horizontal overflow at 320, 430 and desktop; keyboard-sized viewport", 
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await page.locator("#edit-situation").click();
-    await page.locator("#pot").scrollIntoViewIfNeeded();
-    await page.locator("#pot").click();
-    await page.locator("#pot").fill("1,20");
-    await expect(page.locator("#pot")).toBeInViewport();
-    await page.locator("#close-situation").click();
+    await page.locator("#save-hand").click();
+    await page.locator("#save-amount").scrollIntoViewIfNeeded();
+    await page.locator("#save-amount").click();
+    await page.locator("#save-amount").fill("1,20");
+    await expect(page.locator("#save-amount")).toBeInViewport();
+    await page.locator("#close-save").click();
   }
   await page.setViewportSize({ width: 430, height: 932 });
   await page.evaluate(() => scrollTo(0, 0));
