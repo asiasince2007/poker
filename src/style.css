@@ -341,6 +341,7 @@ label {
 }
 .precision-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   min-height: 44px;
@@ -358,6 +359,23 @@ label {
 .precision-row button {
   margin-left: auto;
   min-width: 65px;
+}
+.history-actions {
+  display: flex;
+  gap: 8px;
+}
+.history-entry {
+  border-top: 1px solid #ccc;
+  padding: 12px 0;
+}
+.history-entry p {
+  margin: 5px 0;
+}
+#history-content {
+  font-size: 13px;
+}
+#confirm-save {
+  margin-top: 12px;
 }
 .jump-links {
   display: flex;

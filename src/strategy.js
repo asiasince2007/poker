@@ -166,7 +166,7 @@ export function advice(s) {
         : call === 0
           ? "Kostenlos schieben. Für diese Hand sieht der vorsichtige Plan keine Erhöhung vor."
           : "Aussteigen ist der vorsichtige Anfängerstandard gegen bloße Mitspieler. Ein spekulativer Call benötigt zusätzliche Begründung.";
-    return openingHand(hero, position)
+    return openingHand(hero, position) && (opponents <= 5 || strong)
       ? raise(3 * bb)
       : "Aussteigen: Diese Hand liegt außerhalb der vereinfachten Eröffnungsauswahl für deine Position.";
   }

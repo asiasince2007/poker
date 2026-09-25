@@ -10,6 +10,7 @@ import {
 } from "./cards.js";
 import { bestFive, categories } from "./evaluator.js";
 import { drawOuts } from "./draws.js";
+import { initHistory } from "./history-ui.js";
 import { advice, money, callPrice, callCeiling, euros } from "./strategy.js";
 const $ = (id) => document.getElementById(id);
 const pc = (q) =>
@@ -32,6 +33,11 @@ let worker,
 const hero = () => cards.slice(0, 2).filter((c) => c !== null);
 const board = () => cards.slice(2).filter((c) => c !== null);
 const enemies = () => Number($("opponents").value);
+const historyUI = initHistory(() => ({
+  hero: hero(),
+  board: board(),
+  opponents: enemies(),
+}));
 const textFields = [
   "pot",
   "call",
@@ -109,6 +115,7 @@ function cardButton(c, i) {
   return b;
 }
 function renderCards() {
+  historyUI.update();
   $("hero-cards").replaceChildren(
     ...cards.slice(0, 2).map((c, i) => cardButton(c, i)),
   );
@@ -161,6 +168,7 @@ function renderPicker() {
 }
 function setCard(c) {
   const oldStage = stage();
+  if (selectedSlot < 2 && cards[selectedSlot] !== c) historyUI.reset();
   cards[selectedSlot] = c;
   if (c === null && selectedSlot >= 2 && selectedSlot < 5) {
     cards[5] = null;
@@ -182,6 +190,7 @@ function stage() {
 $("close-picker").onclick = () => $("picker").close();
 $("remove-card").onclick = () => setCard(null);
 $("new-hand").onclick = () => {
+  historyUI.reset();
   cards.fill(null);
   Object.keys(revealed).forEach((k) => (revealed[k] = false));
   resetSituation();
@@ -203,17 +212,19 @@ $("opponents").onchange = () => {
 };
 function ranking() {
   const opponents = enemies() || 5,
+    referenceOpponents = Math.min(opponents, 5),
     rows = [...stats.preflop].sort(
       (a, b) =>
-        b.estimates[opponents - 1].equity - a.estimates[opponents - 1].equity,
+        b.estimates[referenceOpponents - 1].equity -
+        a.estimates[referenceOpponents - 1].equity,
     );
   const key = hero().length === 2 ? handClass(hero()) : "";
   $("ranking-note").textContent =
-    `Nach Potanteil gegen ${opponents} Zufallsgegner. Nahe Rangplätze sind keine sicheren Stärkeunterschiede.`;
+    `${opponents > 5 ? "Referenztabelle nur bis 5 Gegner vorhanden; hier ausdrücklich 5 Gegner. Deine ausgewählte Hand wird oben gegen " + opponents + " Gegner neu berechnet. " : ""}Nach Potanteil gegen ${referenceOpponents} Zufallsgegner. Nahe Rangplätze sind keine sicheren Stärkeunterschiede.`;
   $("ranking-body").innerHTML = rows
     .map(
       (r, i) =>
-        `<tr class="${r.hand === key && revealed.hero && revealed.equity ? "highlight" : ""}"><td>${i + 1}</td><td>${r.hand}</td><td>${pc(r.estimates[opponents - 1].equity / 100)}</td><td>${r.estimates[opponents - 1].ci95_pp.toLocaleString("de-DE", { maximumFractionDigits: 2 })}</td></tr>`,
+        `<tr class="${opponents <= 5 && r.hand === key && revealed.hero && revealed.equity ? "highlight" : ""}"><td>${i + 1}</td><td>${r.hand}</td><td>${pc(r.estimates[referenceOpponents - 1].equity / 100)}</td><td>${r.estimates[referenceOpponents - 1].ci95_pp.toLocaleString("de-DE", { maximumFractionDigits: 2 })}</td></tr>`,
     )
     .join("");
   return rows.findIndex((r) => r.hand === key) + 1;
@@ -256,7 +267,7 @@ function recalculate() {
     return;
   }
   const target = Number($("samples").value);
-  if (!b.length) {
+  if (!b.length && count <= 5) {
     const row = stats.preflop.find((r) => r.hand === handClass(h)).estimates[
       count - 1
     ];
@@ -409,6 +420,7 @@ function applyVisibility() {
   $("analysis-mask").hidden = revealed.equity;
 }
 function hideAll() {
+  historyUI.conceal();
   Object.keys(revealed).forEach((key) => (revealed[key] = false));
   $("picker").close();
   $("analysis-dialog").close();

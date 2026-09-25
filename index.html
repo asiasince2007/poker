@@ -65,6 +65,9 @@
             <option value="3">3</option>
             <option value="4">4</option>
             <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
           </select>
         </div>
         <div class="result-heading">
@@ -106,6 +109,7 @@
           ><select id="samples">
             <option value="1000000">1 Mio.</option>
             <option value="5000000">5 Mio.</option></select
+          ><button id="save-hand" disabled>Hand speichern</button
           ><button id="show-details">Details</button>
         </div>
         <noscript
@@ -115,6 +119,66 @@
           </p></noscript
         >
       </section>
+      <dialog id="save-dialog" aria-labelledby="save-title">
+        <div class="dialog-heading">
+          <h2 id="save-title">Hand speichern</h2>
+          <button id="close-save">Schließen</button>
+        </div>
+        <p class="micro" id="save-card-summary">
+          Zwei Handkarten werden übernommen.
+        </p>
+        <label class="check"
+          ><input type="checkbox" id="save-board" checked /> Vorhandene
+          Tischkarten übernehmen (optional)</label
+        >
+        <p class="micro">
+          Ohne Tischkarten bleibt die Hand speicherbar. Fehlende Karten werden
+          nicht als „vor dem Flop“ interpretiert.
+        </p>
+        <label
+          >Ergebnis<select id="save-outcome">
+            <option value="">Bitte wählen</option>
+            <option value="won">Gewonnen</option>
+            <option value="lost">Verloren</option>
+            <option value="split">Pot geteilt</option>
+          </select></label
+        >
+        <label
+          ><span id="save-amount-label">Ungefährer Betrag (€), optional</span
+          ><input
+            id="save-amount"
+            inputmode="decimal"
+            placeholder="leer lassen oder schätzen"
+            autocomplete="off"
+        /></label>
+        <p class="micro" id="save-amount-hint">
+          Gewinn: gesamte Auszahlung inklusive eigenem Einsatz. Verlust:
+          verlorener eigener Einsatz.
+        </p>
+        <button id="confirm-save">Speichern</button>
+        <p id="save-feedback" role="status"></p>
+        <p class="micro">
+          Nur in diesem Browser gespeichert, ohne Übertragung. Browserdaten
+          löschen kann die Einträge entfernen. Unter „Gespeicherte Hände“ kannst
+          du sie exportieren.
+        </p>
+      </dialog>
+      <dialog id="history-dialog" aria-labelledby="history-title">
+        <div class="dialog-heading">
+          <h2 id="history-title">Gespeicherte Hände</h2>
+          <button id="close-history">Schließen</button>
+        </div>
+        <div class="history-actions">
+          <button id="toggle-history">Zeigen</button
+          ><button id="export-history" disabled>Exportieren</button>
+        </div>
+        <p id="history-message" role="status">Verlauf verdeckt.</p>
+        <div id="history-content" hidden>
+          <div id="history-summary"></div>
+          <div id="history-groups"></div>
+          <div id="history-list"></div>
+        </div>
+      </dialog>
       <dialog id="analysis-dialog" aria-labelledby="analysis-title">
         <div class="dialog-heading">
           <h2 id="analysis-title">Berechnung & Verbesserungen</h2>
@@ -290,6 +354,9 @@
         </section>
       </dialog>
       <nav class="jump-links" aria-label="Weiter zu">
+        <button id="open-history" class="text-button">
+          Gespeicherte Hände
+        </button>
         <a href="#ranking">169 Starthände</a
         ><a href="#wissen">Wissen & Quellen</a>
       </nav>
@@ -470,9 +537,13 @@
           <p>
             Die App verarbeitet Karteneingaben und Rechnungen lokal, ohne Konto,
             API-Schlüssel oder eigenes Tracking. GitHub stellt die Website
-            bereit und kann dabei technische Zugriffsdaten verarbeiten. Kein
-            Service Worker, kein Anspruch auf vollständige Anonymität oder
-            verlässliche Offline-Nutzung.
+            bereit. „Hand speichern“ legt ausdrücklich ausgewählte Hände nur im
+            lokalen Browser ab. Diese bleiben über Neuladen erhalten und können
+            unter „Gespeicherte Hände“ exportiert oder gelöscht werden.
+            Browserdaten löschen kann auch den Verlauf entfernen. GitHub kann
+            technische Zugriffsdaten verarbeiten. Kein Service Worker, kein
+            Anspruch auf vollständige Anonymität oder verlässliche
+            Offline-Nutzung.
           </p>
           <ul>
             <li>

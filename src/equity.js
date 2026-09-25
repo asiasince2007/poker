@@ -18,8 +18,8 @@ export function validateScenario(hero, board, opponents) {
     throw new Error(
       "Zwei eigene und null, drei, vier oder fünf Tischkarten erforderlich.",
     );
-  if (!Number.isInteger(opponents) || opponents < 1 || opponents > 5)
-    throw new Error("Ein bis fünf aktive Gegner erforderlich.");
+  if (!Number.isInteger(opponents) || opponents < 1 || opponents > 8)
+    throw new Error("Ein bis acht aktive Gegner erforderlich.");
 }
 export function potShare(scores) {
   const best = Math.max(...scores);

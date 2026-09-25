@@ -76,6 +76,7 @@ test("compact monochrome overview fits 430×740 with results", async ({
     "result",
     "edit-situation",
     "samples",
+    "save-hand",
   ])
     await expect(page.locator("#" + id)).toBeInViewport();
   expect(

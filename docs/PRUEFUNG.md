@@ -25,6 +25,8 @@ Zusätzliche Tests: PRNG-Zustand nach sechs Millionen Ziehungen gegen eine unabh
 
 ## iPhone 14 Pro Max: kurzer echter Gerätetest
 
+Erweiterung: acht aktive Gegner einschließlich neunfacher Potteilung geprüft. Speicherprüfung für optionale/unvollständige Tischkarten, Aktualisierung ohne Duplikat, Neuladen, verdeckten Verlauf, Export, Löschen, ungültige Beträge, getrennte Bruttoauszahlungen/verlorene Einsätze, beschädigte Daten und gesperrten/vollen Speicher. Sichtschutz bei `visibilitychange` wird zusätzlich als Ereignisbehandlung geprüft; das ersetzt keinen echten iOS-Appwechsel.
+
 1. Website über HTTPS in Safari öffnen; keine heruntergeladene HTML-Datei verwenden. Oben muss der Rechner mit einer verständlichen Eingabeaufforderung erscheinen.
 2. A♥ und K♥ auswählen: Karten und Ergebnis bleiben verdeckt. „Zeigen“ bei eigenen Karten und beim Potanteil antippen; oben erscheint die aktuelle Einordnung. Gegner auf 2 stellen.
 3. Q♥ und 9♥ ergänzen: „Flop noch unvollständig“, keine alte Prozentzahl. Dann 2♣ wählen: Rechnung bis 1.000.000, ungefähr 58 % gegen zwei Zufallsgegner. Handkarten bleiben erhalten. Die Hauptansicht einschließlich Ergebnis, Sichtschaltern und Einsatzangaben soll ohne Scrollen sichtbar sein. Optional 5 Mio. wählen.
