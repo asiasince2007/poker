@@ -10,7 +10,7 @@ import {
 } from "./cards.js";
 import { bestFive, categories } from "./evaluator.js";
 import { drawOuts } from "./draws.js";
-import { advice, money, callPrice, euros } from "./strategy.js";
+import { advice, money, callPrice, callCeiling, euros } from "./strategy.js";
 const $ = (id) => document.getElementById(id);
 const pc = (q) =>
   (q * 100).toLocaleString("de-DE", {
@@ -19,6 +19,9 @@ const pc = (q) =>
   }) + " %";
 const number = (n) => n.toLocaleString("de-DE");
 const cards = Array(7).fill(null);
+const revealed = { hero: false, board: false, equity: false };
+let callSummary = "Callgrenze: Situation ergänzen.";
+let completed = false;
 let worker,
   watchdog,
   generation = 0,
@@ -51,6 +54,7 @@ function cancel() {
   worker = null;
   clearTimeout(watchdog);
   current = null;
+  completed = false;
 }
 function fail(message) {
   cancel();
@@ -61,7 +65,9 @@ function fail(message) {
   $("retry").onclick = recalculate;
   $("calculation").textContent =
     "Keine aktuelle Wahrscheinlichkeitsberechnung. Bitte erneut versuchen.";
+  $("public-status").textContent = "Berechnung fehlgeschlagen.";
   updateAdvice();
+  applyVisibility();
 }
 window.addEventListener("error", () =>
   fail(
@@ -84,14 +90,18 @@ function cardButton(c, i) {
         : i === 5
           ? "Turn"
           : "River";
+  const visible = revealed[i < 2 ? "hero" : "board"];
   b.setAttribute(
     "aria-label",
-    `${label}: ${c === null ? "wählen" : cardName(c)}`,
+    `${label}: ${c === null ? "wählen" : visible ? cardName(c) : "gesetzt, verdeckt"}`,
   );
+  b.classList.toggle("covered", c !== null && !visible);
   b.innerHTML =
     c === null
       ? `${i < 2 ? i + 1 : i < 5 ? "Flop " + (i - 1) : label}<br>＋`
-      : `${ranks[c >> 2].replace("T", "10")}<small>${suits[c % 4]}</small>`;
+      : !visible
+        ? "▧"
+        : `${ranks[c >> 2].replace("T", "10")}<small>${suits[c % 4]}</small>`;
   b.disabled =
     (i === 5 && cards.slice(2, 5).some((c) => c === null)) ||
     (i === 6 && cards.slice(2, 6).some((c) => c === null));
@@ -173,6 +183,7 @@ $("close-picker").onclick = () => $("picker").close();
 $("remove-card").onclick = () => setCard(null);
 $("new-hand").onclick = () => {
   cards.fill(null);
+  Object.keys(revealed).forEach((k) => (revealed[k] = false));
   resetSituation();
   $("opponents").value = "5";
   renderCards();
@@ -202,7 +213,7 @@ function ranking() {
   $("ranking-body").innerHTML = rows
     .map(
       (r, i) =>
-        `<tr class="${r.hand === key ? "highlight" : ""}"><td>${i + 1}</td><td>${r.hand}</td><td>${pc(r.estimates[opponents - 1].equity / 100)}</td><td>${r.estimates[opponents - 1].ci95_pp.toLocaleString("de-DE", { maximumFractionDigits: 2 })}</td></tr>`,
+        `<tr class="${r.hand === key && revealed.hero && revealed.equity ? "highlight" : ""}"><td>${i + 1}</td><td>${r.hand}</td><td>${pc(r.estimates[opponents - 1].equity / 100)}</td><td>${r.estimates[opponents - 1].ci95_pp.toLocaleString("de-DE", { maximumFractionDigits: 2 })}</td></tr>`,
     )
     .join("");
   return rows.findIndex((r) => r.hand === key) + 1;
@@ -212,72 +223,75 @@ function recalculate() {
   calculationFailed = false;
   const h = hero(),
     b = board(),
-    count = enemies(),
-    rankIndex = ranking();
+    count = enemies();
+  ranking();
+  renderCurrent();
   $("street").textContent =
     b.length === 0
-      ? "VOR DEM FLOP"
+      ? "Vor dem Flop"
       : b.length < 3
-        ? "FLOP ERGÄNZEN"
+        ? "Flop ergänzen"
         : b.length === 3
-          ? "FLOP"
+          ? "Flop"
           : b.length === 4
-            ? "TURN"
-            : "RIVER";
-  $("current-hand").replaceChildren();
+            ? "Turn"
+            : "River";
   $("calculation").textContent = "Wähle zuerst deine Karten.";
   if (count === 0) {
-    $("result").innerHTML =
-      "<h2>Pot ohne Kartenvergleich gewonnen</h2><p>Alle Gegner sind ausgestiegen. Eine Equity-Berechnung ist nicht nötig.</p>";
+    $("result").innerHTML = "<p>Pot ohne Kartenvergleich gewonnen.</p>";
+    $("public-status").textContent = "Alle Gegner ausgestiegen.";
     updateAdvice();
+    applyVisibility();
     return;
   }
   if (h.length < 2 || (b.length > 0 && b.length < 3)) {
-    $("result").innerHTML =
+    const message =
       h.length < 2
-        ? `<h2>Wähle deine ${h.length ? "zweite Karte" : "zwei Karten"}.</h2><p>Danach siehst du sofort den statistischen Potanteil. Den Flop kannst du hier ergänzen.</p>`
-        : `<h2>Flop noch unvollständig</h2><p>${b.length} von 3 Flopkarten gewählt. Ergänze den Flop oder leere den Tisch für die Preflop-Rechnung.</p>`;
+        ? `Wähle deine ${h.length ? "zweite Karte" : "zwei Karten"}.`
+        : `Flop noch unvollständig: ${b.length} von 3.`;
+    $("result").textContent = message;
+    $("public-status").textContent = message;
     updateAdvice();
+    applyVisibility();
     return;
   }
-  if (b.length === 0) {
-    const key = handClass(h),
-      data = stats.preflop.find((r) => r.hand === key).estimates[count - 1];
+  const target = Number($("samples").value);
+  if (!b.length) {
+    const row = stats.preflop.find((r) => r.hand === handClass(h)).estimates[
+      count - 1
+    ];
     current = {
-      equity: data.equity / 100,
-      halfWidth: data.ci95_pp / 100,
+      equity: row.equity / 100,
+      halfWidth: row.ci95_pp / 100,
       n: stats.n_per_scenario,
       method: "preflop",
     };
-    $("result").innerHTML =
-      `<div class="result-top"><div><span class="metric-label">Erwarteter Potanteil (Equity)</span><strong class="equity-number">${pc(current.equity)}</strong></div><span class="result-tag">${key} · Rang ${rankIndex}/169</span></div><p>Gegen ${count} Zufallsgegner · ± ${data.ci95_pp.toLocaleString("de-DE", { maximumFractionDigits: 2 })} Prozentpunkte¹</p>`;
-    $("current-hand").innerHTML =
-      `<div class="current"><h3>${key} · ${key.length === 2 ? "Paar" : key.endsWith("s") ? "Gleiches Kartensymbol" : "Verschiedene Kartensymbole"}</h3><p>${rankIndex <= 17 ? "Unter den oberen 10 % der Klassen in diesem Modell." : `Rang ${rankIndex} von 169 Klassen in diesem Modell.`} Eine passende Aktion hängt außerdem von Position, Einsätzen und Gegnerauswahl ab.</p></div>`;
-    $("calculation").innerHTML =
-      `<p>Vorberechnete Monte-Carlo-Simulation: ${number(current.n)} Austeilungen je Klasse; Startwert ${stats.seed}. ¹ Geschätztes einzelnes 95-%-Intervall: ${pc(Math.max(0, current.equity - current.halfWidth))} bis ${pc(Math.min(1, current.equity + current.halfWidth))}. Nahe Rangplätze können sich durch Stichprobenfehler vertauschen.</p><p>Alleinsieg und Teilung sind im übernommenen Datensatz nicht getrennt gespeichert und werden nicht aus der Equity abgeleitet. Paare: 6, suited: 4, offsuit: 12 konkrete Kombinationen je Klasse.</p>`;
-    updateAdvice();
-    return;
+    renderEquity(true);
+  } else {
+    $("result").innerHTML = '<p class="loading">Berechnung läuft …</p>';
+    $("public-status").textContent = "Berechnung läuft …";
   }
-  const best = bestFive([...h, ...b]);
-  $("current-hand").innerHTML =
-    `<div class="current"><h3>Aktuell: ${categories[best.category]}</h3><span class="mini-cards">${best.cards.map(shortCard).join(" ")}</span><p>Beste fünf aus deinen Karten und dem bisherigen Tisch. Das ist noch keine Gewinnwahrscheinlichkeit.</p></div>`;
-  $("result").innerHTML =
-    '<h2 class="loading">Deine Karten werden berechnet …</h2><p>Zufällige Gegner und alle noch kommenden Tischkarten. Du kannst die Eingaben weiter ändern.</p>';
-  $("calculation").textContent = "Simulation läuft …";
   updateAdvice();
+  applyVisibility();
   const id = generation;
+  // Inactivity timeout, renewed by real worker progress; not a 30-second limit
+  // on an intentionally large sample. Input changes still terminate immediately.
+  const armWatchdog = () => {
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      if (id === generation)
+        fail("Der Rechenprozess antwortet nicht. Bitte erneut versuchen.");
+    }, 45000);
+  };
   try {
     worker = new Worker(new URL("./worker.js", import.meta.url), {
       type: "module",
     });
-    watchdog = setTimeout(() => {
-      if (id === generation)
-        fail("Die Berechnung dauert zu lange. Bitte erneut versuchen.");
-    }, 30000);
+    armWatchdog();
     worker.onerror = () => {
       if (id === generation)
         fail(
-          "Der Rechenprozess konnte nicht gestartet werden. Prüfe die Verbindung und lade neu.",
+          "Der Rechenprozess konnte nicht gestartet werden. Bitte neu laden.",
         );
     };
     worker.onmessage = ({ data }) => {
@@ -286,44 +300,157 @@ function recalculate() {
         fail(data.error);
         return;
       }
+      armWatchdog();
+      if (data.result.method === "enumerating") {
+        // A deterministic enumeration prefix is NOT a random sample. Show only
+        // its progress, never biased prefix equity or a fake confidence interval.
+        $("public-status").textContent =
+          `Exakte Rechnung: ${number(data.result.n)} / ${number(data.result.total)}`;
+        return;
+      }
+      // The saved 100k preflop estimate is a better immediate preview than the
+      // initial 2k sample; do not replace it until the live sample catches up.
+      if (
+        data.partial &&
+        current?.method === "preflop" &&
+        data.result.n < current.n
+      )
+        return;
       current = data.result;
+      completed = !data.partial;
       renderEquity(Boolean(data.partial));
+      updateAdvice();
+      applyVisibility();
       if (!data.partial) {
         clearTimeout(watchdog);
         worker.terminate();
         worker = null;
       }
-      updateAdvice();
     };
     worker.postMessage({
       id,
       hero: h,
       board: b,
       opponents: count,
-      n: 30000,
+      n: target,
       seed: 20260925,
     });
   } catch {
     fail(
-      "Web Worker ist in diesem Browser nicht verfügbar. Bitte die Website in einem aktuellen Safari öffnen.",
+      "Web Worker ist nicht verfügbar. Bitte einen aktuellen Safari verwenden.",
     );
+  }
+}
+function renderCurrent() {
+  const h = hero(),
+    b = board();
+  if (h.length < 2) $("current-hand").textContent = "Karten fehlen";
+  else if (b.length > 0 && b.length < 3)
+    $("current-hand").textContent = "Flop unvollständig";
+  else if (!b.length) {
+    const key = handClass(h);
+    $("current-hand").textContent =
+      `${revealed.hero ? key + " · " : ""}${key.length === 2 ? "Paar" : key.endsWith("s") ? "Gleiches Symbol" : "Verschiedene Symbole"}`;
+  } else {
+    const best = bestFive([...h, ...b]);
+    $("current-hand").innerHTML =
+      `<strong>${categories[best.category]}</strong>${revealed.hero && revealed.board ? `<span class="mini-cards">${best.cards.map(shortCard).join(" ")}</span>` : ""}`;
   }
 }
 function renderEquity(partial) {
   const r = current,
-    exact = r.method === "exact";
+    exact = r.method === "exact",
+    preview = r.method === "preflop";
+  const label = preview
+    ? "100.000 gespeichert · Verfeinerung läuft"
+    : partial
+      ? `Näherung: ${number(r.n)} / ${number(Number($("samples").value))}`
+      : exact
+        ? `Exakt · ${number(r.n)} Möglichkeiten`
+        : `Simulation fertig · ${number(r.n)} Austeilungen`;
+  $("public-status").textContent = label;
   $("result").innerHTML =
-    `<div class="result-top"><div><span class="metric-label">Erwarteter Potanteil (Equity)</span><strong class="equity-number">${pc(r.equity)}</strong></div><span class="result-tag">${partial ? "Näherung läuft" : exact ? "Exakt im Modell" : "Simulation fertig"}</span></div><p>Gegen ${enemies()} Zufallsgegner · ${number(r.n)} ${exact ? "Gegnerhände" : "Austeilungen"}${exact ? "" : ` · ± ${(100 * r.halfWidth).toLocaleString("de-DE", { maximumFractionDigits: 2 })} Prozentpunkte¹`}</p><div class="stats"><div><strong>${pc(r.win)}</strong><span>Alleinsieg</span></div><div><strong>${pc(r.tie)}</strong><span>Geteilter Sieg</span></div><div><strong>${pc(r.loss)}</strong><span>Verlust</span></div></div>`;
+    `<strong class="equity-number">${pc(r.equity)}</strong><p class="uncertainty">${exact ? "Exakt im Zufallsmodell" : `± ${(100 * r.halfWidth).toLocaleString("de-DE", { maximumFractionDigits: 2 })} Prozentpunkte¹`}</p>${preview ? "<p>Erste Näherung</p>" : `<div class="stats"><span>Alleinsieg <b>${pc(r.win)}</b></span><span>Teilung <b>${pc(r.tie)}</b></span><span>Verlust <b>${pc(r.loss)}</b></span></div>`}`;
   const draws = drawOuts(hero(), board());
   $("calculation").innerHTML =
-    `<p>${exact ? "Exakte Enumeration aller 990 legalen Gegnerhände am River." : `Monte-Carlo-Simulation mit ${number(r.n)} Austeilungen, Startwert ${r.seed}. ¹ Geschätztes einzelnes 95-%-Intervall: ${pc(Math.max(0, r.equity - r.halfWidth))} bis ${pc(Math.min(1, r.equity + r.halfWidth))}. Bei ${partial ? "dieser Zwischenanzeige" : "der Schlussanzeige"} beschreibt es ausschließlich den Stichprobenfehler.`}</p>${draws ? `<h3>Nächste Karte: Straße / Flush treffen</h3><p>${draws.flush.length} Flush-Karten + ${draws.straight.length} Straßen-Karten = <strong>${draws.union.length} verschiedene Trefferkarten</strong> nach Abzug von Überschneidungen. ${pc(draws.next)} für einen dieser Treffer auf der nächsten Karte.</p>${draws.union.length ? `<p class="mini-cards">${draws.union.map(shortCard).join(" ")}</p>` : ""}<p>Gezählt wird das Vervollständigen einer jetzt noch fehlenden Straße oder eines Flushs. Das sind keine sicheren Gewinn-Outs; ein Treffer kann später verlieren oder auf dem Tisch liegen. Keine vollständige Liste aller Verbesserungen; Backdoor-Wege brauchen zwei Karten.</p>` : ""}<h3>Deine Handkategorie am River</h3><p>${r.finalCategories
-      .map((p, i) => (p > 0 ? `${categories[i]}: ${pc(p)}` : ""))
-      .filter(Boolean)
-      .join(
-        " · ",
-      )}</p><p>Jede fertige Hand zählt nur in ihrer höchsten Kategorie. Diese Verteilung beschreibt deine Kombination, nicht die Chance, mit dieser Kategorie zu gewinnen.</p>`;
+    `<p>Gegen ${enemies()} zufällige Gegner. ${exact ? `Alle ${number(r.n)} legalen Kombinationen aus verbleibendem Board und Gegnerhand vollständig ausgewertet.` : `${preview ? "Gespeicherte erste Näherung" : "Monte-Carlo-Simulation"}: ${number(r.n)} Austeilungen. Startwert ${preview ? stats.seed : r.seed}. ¹ Geschätztes einzelnes 95-%-Intervall: ${pc(Math.max(0, r.equity - r.halfWidth))} bis ${pc(Math.min(1, r.equity + r.halfWidth))}. ${partial ? "Vorläufiger Zwischenstand." : "Fester Schlussstand."} Das Intervall beschreibt ausschließlich den Stichprobenfehler.`}</p><p>1 Mio. statt 30.000 Austeilungen reduziert den typischen Simulationsfehler um etwa Faktor 5,8; 5 Mio. um Faktor 12,9. Eine unpassende Gegnerauswahl wird dadurch nicht richtig. Vor dem Flop ist die Rangliste weiterhin eine separat bezeichnete 100.000er-Referenz, kein neuer Rang für diese Live-Schätzung.</p>${draws ? `<h3>Treffer auf der nächsten Karte</h3><p>${draws.flush.length} Flush-Karten + ${draws.straight.length} Straßen-Karten = ${draws.union.length} verschiedene Trefferkarten nach Abzug der Überschneidungen: ${pc(draws.next)}.</p><p>Nur das Vervollständigen einer fehlenden Straße/eines Flushs; kein sicherer Gewinn, keine vollständige Verbesserungsmenge und keine Backdoor-Wege.</p>` : ""}${
+      r.finalCategories
+        ? `<h3>Handkategorie am River</h3><p>${r.finalCategories
+            .map((p, i) => (p > 0 ? `${categories[i]}: ${pc(p)}` : ""))
+            .filter(Boolean)
+            .join(
+              " · ",
+            )}</p><p>Jede Hand zählt nur in der höchsten Kategorie. Die Kategorieverteilung ist keine Gewinnquote.</p>`
+        : ""
+    }<p>Callgrenze: q × P / (1 − q), für den unveränderten aktuell gewinnbaren Pot P inklusive des gegnerischen Einsatzes. Nur bei abschließendem Call ohne weitere Kosten und ohne Nebenpot. Bei Simulation verwendet die angezeigte Modellgrenze die untere 95-%-Intervallgrenze statt des Punktschätzers und wird auf Chipgröße abgerundet sowie auf den Reststack begrenzt. Das berücksichtigt Stichprobenfehler, bietet aber keine Sicherheit gegen Modellfehler. Bei eigener q-Schätzung gibt es kein berechnetes Unsicherheitsintervall. Die Grenze ist kein eigener Setzbetrag und kein strategisches Optimum.</p>`;
 }
+function applyVisibility() {
+  for (const key of ["hero", "board", "equity"]) {
+    const button = $("toggle-" + key);
+    button.textContent = revealed[key] ? "Verbergen" : "Zeigen";
+    button.setAttribute(
+      "aria-label",
+      `${key === "hero" ? "Eigene Karten" : key === "board" ? "Tischkarten" : "Ergebnis"} ${revealed[key] ? "verbergen" : "zeigen"}`,
+    );
+    button.setAttribute("aria-pressed", String(revealed[key]));
+  }
+  const sensitiveHand =
+    hero().length === 2 &&
+    (board().length === 0 || board().length >= 3) &&
+    enemies() > 0;
+  const sensitive = sensitiveHand && !calculationFailed;
+  $("current-hand").hidden = sensitiveHand && !revealed.equity;
+  $("current-mask").hidden = !$("current-hand").hidden;
+  $("result").hidden = sensitive && !revealed.equity;
+  $("result-mask").hidden = !$("result").hidden;
+  $("quick-advice").hidden = !revealed.equity;
+  $("quick-call").hidden = !revealed.equity;
+  $("advice").hidden = !revealed.equity;
+  $("call-result").hidden = !revealed.equity;
+  $("calculation-details").hidden = !revealed.equity;
+  $("analysis-mask").hidden = revealed.equity;
+}
+function hideAll() {
+  Object.keys(revealed).forEach((key) => (revealed[key] = false));
+  $("picker").close();
+  $("analysis-dialog").close();
+  $("situation-dialog").close();
+  renderCards();
+  renderCurrent();
+  ranking();
+  applyVisibility();
+}
+for (const key of ["hero", "board", "equity"]) {
+  $("toggle-" + key).disabled = false;
+  $("toggle-" + key).onclick = () => {
+    revealed[key] = !revealed[key];
+    renderCards();
+    renderCurrent();
+    ranking();
+    applyVisibility();
+  };
+}
+$("hide-all").onclick = hideAll;
+window.addEventListener("pagehide", hideAll);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hideAll();
+});
+$("samples").onchange = recalculate;
+$("edit-situation").onclick = () => $("situation-dialog").showModal();
+$("close-situation").onclick = () => $("situation-dialog").close();
+$("show-details").onclick = () => $("analysis-dialog").showModal();
+$("close-analysis").onclick = () => $("analysis-dialog").close();
 function updateAdvice() {
+  callSummary = "Callgrenze: Situation ergänzen.";
+  computeAdvice();
+  const text = $("advice").textContent;
+  $("quick-advice").textContent = /fehlen|auswählen|Zuerst/.test(text)
+    ? "Einsatz offen · Angaben ergänzen."
+    : text.split(". ")[0] + (text.includes(". ") ? "." : "");
+  $("quick-call").textContent = callSummary;
+  applyVisibility();
+}
+function computeAdvice() {
   const b = board(),
     s = Object.fromEntries(
       [
@@ -342,7 +469,7 @@ function updateAdvice() {
     (id) => $(id).value.trim() && s[id] === null,
   );
   $("preflop-situation").hidden = b.length >= 3;
-  $("worse-field").hidden = b.length !== 3;
+  $("worse-field").hidden = b.length < 3;
   $("limpers-field").hidden = $("situation").value !== "limped";
   document
     .querySelectorAll(".raise-field")
@@ -360,6 +487,13 @@ function updateAdvice() {
     s.sb <= s.bb &&
     s.chip > 0 &&
     s.sb % s.chip === 0;
+  if (enemies() === 0) {
+    $("advice").textContent = "Alle Gegner sind ausgestiegen: Pot gewonnen.";
+    $("threshold").textContent = "Kein Call erforderlich.";
+    $("call-result").textContent = "Pot ohne Kartenvergleich gewonnen.";
+    callSummary = "Kein Call erforderlich.";
+    return;
+  }
   $("advice").textContent = invalid.length
     ? "Ungültiger Geldwert: bitte nichtnegative Eurobeträge mit höchstens zwei Nachkommastellen eingeben."
     : !rulesValid
@@ -386,6 +520,7 @@ function updateAdvice() {
   if ($("special").checked || !$("rules").checked) {
     $("threshold").textContent =
       "Gewinnbaren Pot und Hausregeln zuerst klären.";
+    callSummary = "All-in / Nebenpot / Regeln: individuell prüfen.";
     $("call-result").textContent =
       "Einfache Callformel für diese Situation ausgesetzt.";
     return;
@@ -410,6 +545,7 @@ function updateAdvice() {
     return;
   }
   if (!$("closing").checked) {
+    callSummary = "Callgrenze offen: weitere Zahlungen möglich.";
     $("call-result").textContent =
       "Weitere Zahlungen sind möglich oder noch ungeklärt. Der Callpreis allein erlaubt keinen Vergleich mit einer bis zum River berechneten Equity.";
     return;
@@ -420,6 +556,21 @@ function updateAdvice() {
     return;
   }
   const calculation = callPrice(s.pot, s.call, q);
+  if (
+    s.stack !== null &&
+    s.chip > 0 &&
+    !invalid.length &&
+    rulesValid &&
+    s.bb > 0 &&
+    s.bb % s.chip === 0 &&
+    [s.pot, s.call, s.stack].every((v) => v % s.chip === 0)
+  ) {
+    if (qText || completed) {
+      const bound = qText ? q : Math.max(0, q - (current?.halfWidth || 0));
+      const cap = callCeiling(s.pot, bound, s.chip, s.stack);
+      callSummary = `${qText ? "Deine Schätzung" : "Zufallsmodell"}: Call höchstens ${euros(cap)}${cap === s.stack ? " (Reststack)" : ""}. Kein Optimum.`;
+    } else callSummary = "Callgrenze: Schlussrechnung abwarten.";
+  }
   $("call-result").textContent =
     `${qText ? "Mit deiner eigenen Schätzung" : "Nur als Zufallsgegner-Modellbeispiel"} (${pc(q)}): Erwartungswert ${euros(calculation.ev)}. ${qText ? (calculation.ev > 0 ? "Im angegebenen Modell rechnerisch günstiger Call; Qualität der Schätzung bleibt entscheidend." : calculation.ev < 0 ? "Im angegebenen Modell ist Aussteigen rechnerisch günstiger als Mitgehen." : "Rechnerisch neutral, kein Puffer für Schätzfehler.") : "Keine automatische Call-Empfehlung gegen einen tatsächlichen Einsatz."}`;
 }

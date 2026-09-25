@@ -6,251 +6,293 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#164d3e" />
+    <meta name="theme-color" content="#f4f4f4" />
     <meta
       name="description"
       content="Deine Hand, dein Flop: Texas-Hold’em-Kartenrechner mit verständlichen Potanteilen, Callpreis und vorsichtiger Spielhilfe. Lokal im Browser."
     />
-    <title>Pokerassistent · Deine Hand verstehen</title>
+    <title>Karten</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <header>
-      <a class="brand" href="#rechner"
-        ><span aria-hidden="true">♠</span> Pokerassistent</a
-      ><button id="new-hand" disabled>Neue Hand ↺</button>
-    </header>
     <main>
-      <section id="rechner" class="panel calculator" aria-labelledby="title">
-        <div class="eyebrow">
-          TEXAS HOLD’EM <span id="street">VOR DEM FLOP</span>
+      <section id="rechner" class="panel calculator" aria-label="Kartenrechner">
+        <div class="current-top">
+          <div>
+            <h1>Aktuell</h1>
+            <div id="current-hand">Noch keine Hand</div>
+            <span id="current-mask" hidden>Verdeckt</span>
+          </div>
+          <div class="top-actions">
+            <button
+              id="hide-all"
+              title="Alles verdecken"
+              aria-label="Alles verdecken"
+            >
+              ◒</button
+            ><button id="new-hand" disabled>Neue Hand</button>
+          </div>
         </div>
-        <h1 id="title">Was steckt in deiner Hand?</h1>
         <div class="hand-heading">
           <h2>Deine zwei Karten</h2>
-          <span>Antippen & auswählen</span>
+          <button id="toggle-hero" class="visibility" disabled>Zeigen</button>
         </div>
-        <div id="hero-cards" class="card-row hero-row">
-          <button class="card empty" disabled>1<br />＋</button
-          ><button class="card empty" disabled>2<br />＋</button>
+        <div class="hero-line">
+          <div id="hero-cards" class="card-row hero-row">
+            <button class="card empty" disabled>1<br />＋</button
+            ><button class="card empty" disabled>2<br />＋</button>
+          </div>
+          <span id="street">Vor dem Flop</span>
         </div>
         <div class="hand-heading">
           <h2>Auf dem Tisch</h2>
-          <button id="clear-board" class="text-button" disabled>
-            Tisch leeren
-          </button>
+          <div>
+            <button id="clear-board" class="text-button" disabled>
+              Tisch leeren</button
+            ><button id="toggle-board" class="visibility" disabled>
+              Zeigen
+            </button>
+          </div>
         </div>
         <div id="board-cards" class="card-row board-row"></div>
         <div class="opponents">
           <label for="opponents">Gegner noch in der Hand</label
           ><select id="opponents" disabled>
-            <option value="0">0 · alle ausgestiegen</option>
-            <option value="1">1 Gegner</option>
-            <option value="2">2 Gegner</option>
-            <option value="3">3 Gegner</option>
-            <option value="4">4 Gegner</option>
-            <option value="5" selected>5 Gegner</option>
+            <option value="0">0 · alle weg</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
           </select>
         </div>
-        <p class="micro">
-          Zähle nur die aktiven Gegner, nicht alle Personen am Tisch.
+        <div class="result-heading">
+          <h2>Erwarteter Potanteil</h2>
+          <button id="toggle-equity" class="visibility" disabled>Zeigen</button>
+        </div>
+        <div id="public-status" role="status" aria-live="polite">
+          Der Rechner wird gestartet …
+        </div>
+        <div class="result-grid">
+          <div
+            id="result"
+            class="result"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <p>
+              Bleibt dieser Hinweis stehen, konnte JavaScript nicht starten.
+              Bitte die Website neu laden.
+            </p>
+          </div>
+          <div id="result-mask" hidden>
+            •••<small>Potanteil & Spielhilfe verdeckt</small>
+          </div>
+          <div class="quick-help">
+            <h3>Spielhilfe · bedingt</h3>
+            <p id="quick-advice">Situation ergänzen.</p>
+            <p id="quick-call">Callgrenze noch offen.</p>
+            <button id="edit-situation">Einsatzangaben</button>
+          </div>
+        </div>
+        <p class="model-note">
+          Zufällige Gegnerhände. Ein echter Einsatz kann auf eine andere Auswahl
+          hindeuten. Mehr Rechnungen ändern diese Modellgrenze nicht.
         </p>
-        <div
-          id="result"
-          class="result"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <h2>Der Rechner wird gestartet …</h2>
-          <p>
-            Bleibt dieser Hinweis stehen, konnte JavaScript nicht starten. Prüfe
-            deine Internetverbindung und lade die Website neu.
-          </p>
+        <div class="precision-row">
+          <label for="samples">Rechentiefe</label
+          ><select id="samples">
+            <option value="1000000">1 Mio.</option>
+            <option value="5000000">5 Mio.</option></select
+          ><button id="show-details">Details</button>
         </div>
         <noscript
           ><p class="notice">
-            JavaScript ist ausgeschaltet. Aktiviere JavaScript im Browser, damit
-            Kartenauswahl und Berechnung funktionieren. Diese Seite berechnet
-            sonst keine Ergebnisse.
+            JavaScript ist ausgeschaltet. Aktiviere JavaScript für Karten und
+            Berechnung.
           </p></noscript
         >
-        <p class="model-note">
-          <strong>Modellgrenze:</strong> Diese Gegnerhände sind zufällig
-          modelliert. Ein tatsächlicher Einsatz des Gegners kann auf eine andere
-          Auswahl hindeuten. Alle bleiben bis zum River; Teilungen zählen
-          anteilig.
-        </p>
-        <div id="current-hand"></div>
-        <details id="calculation-details">
-          <summary>Berechnung & Verbesserungen</summary>
-          <div id="calculation">Wähle zuerst deine Karten.</div>
-        </details>
       </section>
-      <nav class="jump-links" aria-label="Weiter zu">
-        <a href="#spielhilfe">Euro-Hilfe ↓</a
-        ><a href="#ranking">169 Starthände ↓</a
-        ><a href="#wissen">Pokerwissen ↓</a>
-      </nav>
-      <section id="spielhilfe" class="panel" aria-labelledby="help-title">
-        <div class="eyebrow">DEINE SITUATION</div>
-        <h2 id="help-title">Was kann ich jetzt tun?</h2>
-        <p>
-          Die Kartenrechnung funktioniert auch ohne diese Angaben. Geldwerte
-          sind <strong>Euro</strong>; leer bedeutet unbekannt.
+      <dialog id="analysis-dialog" aria-labelledby="analysis-title">
+        <div class="dialog-heading">
+          <h2 id="analysis-title">Berechnung & Verbesserungen</h2>
+          <button id="close-analysis">Schließen</button>
+        </div>
+        <p id="analysis-mask">
+          Ergebnisse sind verdeckt. Über „Zeigen“ am Potanteil einblenden.
         </p>
-        <div class="fields">
-          <label
-            >Gewinnbarer Pot inkl. Gegner-Einsatz (€)<input
-              id="pot"
-              inputmode="decimal"
-              placeholder="z. B. 1,20"
-              autocomplete="off"
-          /></label>
-          <label
-            >Zusätzlich nötiger Call (€)<input
-              id="call"
-              inputmode="decimal"
-              placeholder="auch 0 eintragen"
-              autocomplete="off"
-          /></label>
-          <label
-            >Von mir in dieser Setzrunde bezahlt (€)<input
-              id="paid"
-              inputmode="decimal"
-              placeholder="z. B. 0,20"
-              autocomplete="off"
-          /></label>
-          <label
-            >Verbleibende spielbare Chips (€)<input
-              id="stack"
-              inputmode="decimal"
-              placeholder="tatsächlichen Betrag eintragen"
-              autocomplete="off"
-          /></label>
+        <div id="calculation-details">
+          <div id="calculation">Wähle zuerst deine Karten.</div>
         </div>
-        <p class="micro">
-          Chips: höchstens dein Reststack und der gegen die Gegner noch
-          spielbare Betrag. Bei unterschiedlichen All-ins können Nebenpots
-          entstehen. Der Betrag wird bei „Neue Hand“ geleert.
-        </p>
-        <div id="preflop-situation" class="fields">
-          <label
-            >Meine Position<select id="position">
-              <option value="">Bitte wählen</option>
-              <option value="early">Früh (erste 1–2 Plätze)</option>
-              <option value="cutoff">Direkt vor dem Dealer</option>
-              <option value="button">Dealer / Button</option>
-              <option value="sb">Small Blind</option>
-              <option value="bb">Big Blind</option>
-            </select></label
-          >
-          <label
-            >Bisherige Aktion<select id="situation">
-              <option value="">Bitte wählen</option>
-              <option value="unopened">Alle vor mir ausgestiegen</option>
-              <option value="limped">Nur Big Blind mitgegangen</option>
-              <option value="raised">Es wurde bereits erhöht</option>
-            </select></label
-          >
-          <label id="limpers-field" hidden
-            >Davon bloße Mitspieler<input
-              id="limpers"
-              type="number"
-              min="1"
-              max="5"
-              step="1"
-              inputmode="numeric"
-              placeholder="1 bis 5"
-          /></label>
-          <label class="raise-field" hidden
-            >Höchster Gesamtbeitrag (€)<input
-              id="highest"
-              inputmode="decimal"
-              placeholder="z. B. 0,60"
-          /></label>
-          <label class="raise-field" hidden
-            >Letzte volle Erhöhungsdifferenz (€)<input
-              id="lastRaise"
-              inputmode="decimal"
-              placeholder="z. B. 0,40"
-          /></label>
+      </dialog>
+      <dialog id="situation-dialog" aria-labelledby="help-title">
+        <div class="dialog-heading">
+          <h2 id="help-title">Einsatzangaben</h2>
+          <button id="close-situation">Fertig</button>
         </div>
-        <label class="check" id="worse-field" hidden
-          ><input id="worseCalls" type="checkbox" />Meine Einschätzung:
-          Schlechtere Hände würden meinen Einsatz bezahlen.</label
-        >
-        <label class="check"
-          ><input id="special" type="checkbox" />Kurzes All-in, Nebenpot oder
-          unklarer gewinnbarer Pot / unklarer Erhöhungsanspruch</label
-        >
-        <div class="advice">
-          <div class="eyebrow">VEREINFACHTE STRATEGIE</div>
-          <p id="advice" aria-live="polite">
-            Wähle zuerst deine Karten. Keine Einsatzempfehlung ohne
-            Spielsituation.
-          </p>
-        </div>
-        <details open>
-          <summary>Preis fürs Mitgehen</summary>
-          <p id="threshold">Pot und zusätzlichen Call eintragen.</p>
-          <label class="check"
-            ><input id="closing" type="checkbox" />Nach diesem Call fallen bis
-            zum Kartenvergleich keine weiteren Zahlungen an; der eingegebene Pot
-            ist vollständig für mich gewinnbar.</label
-          >
-          <label
-            >Eigene begründete Schätzung des Potanteils (%) · optional<input
-              id="q"
-              inputmode="decimal"
-              placeholder="0 bis 100, keine reine Trefferquote"
-          /></label>
-          <p class="micro">
-            Ohne eigene Schätzung wird die Zufallsgegner-Rechnung nur als
-            Modellbeispiel verwendet. Beobachtetes Bluffen liefert keine
-            gemessene Quote.
-          </p>
-          <output id="call-result" aria-live="polite"
-            >Noch keine Callbewertung.</output
-          >
-        </details>
-        <details>
-          <summary>Blinds & Hausregeln</summary>
+        <section id="spielhilfe" aria-label="Euro-Hilfe">
           <p>
-            Arbeitsannahmen: No-Limit Cashgame, keine Gebühren (Rake), kein
-            Ante. „Auf“ meint den Gesamtbeitrag dieser Setzrunde. Werte an eure
-            Runde anpassen.
+            Die Kartenrechnung funktioniert auch ohne diese Angaben. Geldwerte
+            sind <strong>Euro</strong>; leer bedeutet unbekannt.
           </p>
-          <label class="check"
-            ><input id="rules" type="checkbox" checked />Diese Annahmen für die
-            Euro-Hilfe verwenden</label
-          >
           <div class="fields">
             <label
-              >Small Blind (€)<input
-                id="sb"
-                value="0,10"
-                inputmode="decimal" /></label
-            ><label
-              >Big Blind (€)<input
-                id="bb"
-                value="0,20"
-                inputmode="decimal" /></label
-            ><label
-              >Kleinster Chip (€)<input
-                id="chip"
-                value="0,10"
+              >Gewinnbarer Pot inkl. Gegner-Einsatz (€)<input
+                id="pot"
                 inputmode="decimal"
+                placeholder="z. B. 1,20"
+                autocomplete="off"
+            /></label>
+            <label
+              >Zusätzlich nötiger Call (€)<input
+                id="call"
+                inputmode="decimal"
+                placeholder="auch 0 eintragen"
+                autocomplete="off"
+            /></label>
+            <label
+              >Von mir in dieser Setzrunde bezahlt (€)<input
+                id="paid"
+                inputmode="decimal"
+                placeholder="z. B. 0,20"
+                autocomplete="off"
+            /></label>
+            <label
+              >Verbleibende spielbare Chips (€)<input
+                id="stack"
+                inputmode="decimal"
+                placeholder="tatsächlichen Betrag eintragen"
+                autocomplete="off"
             /></label>
           </div>
           <p class="micro">
-            Einstellungen bleiben während dieser geöffneten Sitzung erhalten.
-            Kein automatischer Startstack. 10 € / 20 € sind bei 0,20 € Big Blind
-            50 / 100 BB.
+            Chips: höchstens dein Reststack und der gegen die Gegner noch
+            spielbare Betrag. Bei unterschiedlichen All-ins können Nebenpots
+            entstehen. Der Betrag wird bei „Neue Hand“ geleert.
           </p>
-        </details>
-      </section>
+          <div id="preflop-situation" class="fields">
+            <label
+              >Meine Position<select id="position">
+                <option value="">Bitte wählen</option>
+                <option value="early">Früh (erste 1–2 Plätze)</option>
+                <option value="cutoff">Direkt vor dem Dealer</option>
+                <option value="button">Dealer / Button</option>
+                <option value="sb">Small Blind</option>
+                <option value="bb">Big Blind</option>
+              </select></label
+            >
+            <label
+              >Bisherige Aktion<select id="situation">
+                <option value="">Bitte wählen</option>
+                <option value="unopened">Alle vor mir ausgestiegen</option>
+                <option value="limped">Nur Big Blind mitgegangen</option>
+                <option value="raised">Es wurde bereits erhöht</option>
+              </select></label
+            >
+            <label id="limpers-field" hidden
+              >Davon bloße Mitspieler<input
+                id="limpers"
+                type="number"
+                min="1"
+                max="5"
+                step="1"
+                inputmode="numeric"
+                placeholder="1 bis 5"
+            /></label>
+            <label class="raise-field" hidden
+              >Höchster Gesamtbeitrag (€)<input
+                id="highest"
+                inputmode="decimal"
+                placeholder="z. B. 0,60"
+            /></label>
+            <label class="raise-field" hidden
+              >Letzte volle Erhöhungsdifferenz (€)<input
+                id="lastRaise"
+                inputmode="decimal"
+                placeholder="z. B. 0,40"
+            /></label>
+          </div>
+          <label class="check" id="worse-field" hidden
+            ><input id="worseCalls" type="checkbox" />Meine Einschätzung:
+            Schlechtere Hände würden meinen Einsatz bezahlen.</label
+          >
+          <label class="check"
+            ><input id="special" type="checkbox" />Kurzes All-in, Nebenpot oder
+            unklarer gewinnbarer Pot / unklarer Erhöhungsanspruch</label
+          >
+          <div class="advice">
+            <div class="eyebrow">VEREINFACHTE STRATEGIE</div>
+            <p id="advice" aria-live="polite">
+              Wähle zuerst deine Karten. Keine Einsatzempfehlung ohne
+              Spielsituation.
+            </p>
+          </div>
+          <details open>
+            <summary>Preis fürs Mitgehen</summary>
+            <p id="threshold">Pot und zusätzlichen Call eintragen.</p>
+            <label class="check"
+              ><input id="closing" type="checkbox" />Nach diesem Call fallen bis
+              zum Kartenvergleich keine weiteren Zahlungen an; der eingegebene
+              Pot ist vollständig für mich gewinnbar.</label
+            >
+            <label
+              >Eigene begründete Schätzung des Potanteils (%) · optional<input
+                id="q"
+                inputmode="decimal"
+                placeholder="0 bis 100, keine reine Trefferquote"
+            /></label>
+            <p class="micro">
+              Ohne eigene Schätzung wird die Zufallsgegner-Rechnung nur als
+              Modellbeispiel verwendet. Beobachtetes Bluffen liefert keine
+              gemessene Quote.
+            </p>
+            <output id="call-result" aria-live="polite"
+              >Noch keine Callbewertung.</output
+            >
+          </details>
+          <details>
+            <summary>Blinds & Hausregeln</summary>
+            <p>
+              Arbeitsannahmen: No-Limit Cashgame, keine Gebühren (Rake), kein
+              Ante. „Auf“ meint den Gesamtbeitrag dieser Setzrunde. Werte an
+              eure Runde anpassen.
+            </p>
+            <label class="check"
+              ><input id="rules" type="checkbox" checked />Diese Annahmen für
+              die Euro-Hilfe verwenden</label
+            >
+            <div class="fields">
+              <label
+                >Small Blind (€)<input
+                  id="sb"
+                  value="0,10"
+                  inputmode="decimal" /></label
+              ><label
+                >Big Blind (€)<input
+                  id="bb"
+                  value="0,20"
+                  inputmode="decimal" /></label
+              ><label
+                >Kleinster Chip (€)<input
+                  id="chip"
+                  value="0,10"
+                  inputmode="decimal"
+              /></label>
+            </div>
+            <p class="micro">
+              Einstellungen bleiben während dieser geöffneten Sitzung erhalten.
+              Kein automatischer Startstack. 10 € / 20 € sind bei 0,20 € Big
+              Blind 50 / 100 BB.
+            </p>
+          </details>
+        </section>
+      </dialog>
+      <nav class="jump-links" aria-label="Weiter zu">
+        <a href="#ranking">169 Starthände</a
+        ><a href="#wissen">Wissen & Quellen</a>
+      </nav>
       <section id="ranking" class="panel">
         <div class="eyebrow">VOR DEM FLOP</div>
         <h2>Alle 169 Starthände</h2>
@@ -373,7 +415,7 @@
             keine gelöste optimale Strategie.
           </p>
           <p>
-            Am Flop gilt die erste passende Regel: zuerst Warnzeichen
+            Ab dem Flop gilt die erste passende Regel: zuerst Warnzeichen
             (Tischpaar, drei gleiche Symbole, mögliche Straße) prüfen; dann mit
             mindestens zwei Paaren und erwarteten Calls schlechterer Hände etwa
             ½ Pot erwägen; sonst kostenlos schieben als vorsichtiger Standard.
@@ -416,11 +458,13 @@
             Notizen oder eingebetteten Originaldokumente.
           </p>
           <p>
-            Flop/Turn und River gegen mehrere Gegner: 30.000
-            Monte-Carlo-Austeilungen mit reproduzierbarem Startwert im separaten
-            Worker; frühe Zwischenwerte sind ausdrücklich Näherungen. River
-            gegen einen Gegner: alle 990 möglichen Zweierhände exakt. Die
-            Unsicherheit beschreibt nur den Simulationsfehler, nicht den
+            Ausgewählte Hand vor dem Flop sowie Flop/Turn/River gegen mehrere
+            Gegner: 1.000.000 Austeilungen, optional 5.000.000, mit
+            reproduzierbarem Startwert im Worker. Die 100.000er-Starthandtabelle
+            ist die erste Näherung und bleibt als Ranking-Referenz erhalten.
+            Gegen genau einen Gegner nach dem Flop: exakte Vollauswertung mit
+            1.070.190 Möglichkeiten am Flop, 45.540 am Turn und 990 am River.
+            Mehr Austeilungen reduzieren nur den Simulationsfehler, nicht den
             Unterschied zwischen Zufallsmodell und echten Spielern.
           </p>
           <p>

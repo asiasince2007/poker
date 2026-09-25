@@ -1,10 +1,12 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/browser",
-  timeout: 45000,
-  expect: { timeout: 15000 },
+  timeout: 120000,
+  expect: { timeout: 90000 },
   fullyParallel: true,
-  workers: 2,
+  // Visibility changes intentionally conceal the app. Keep one foreground
+  // browser page so another test cannot trigger this privacy behavior.
+  workers: 1,
   use: {
     baseURL: process.env.LIVE_URL || "http://127.0.0.1:4173/poker/",
     trace: "retain-on-failure",

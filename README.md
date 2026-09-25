@@ -2,7 +2,9 @@
 
 Deutsche Texas-Hold’em-Web-App für schnelle Handyeingaben. [Website öffnen](https://asiasince2007.github.io/poker/).
 
-Zwei konkrete Handkarten auswählen, dann den tatsächlichen Flop im selben Rechner ergänzen. Optional Turn und River hinzufügen. Gegnerzahl meint nur Gegner, die noch in der Hand sind. Die berechnete Equity ist der erwartete Potanteil gegen zufällige Gegner, keine Vorhersage gegen eine bestimmte Setzauswahl. Euro-Hilfe unter dem Rechner: Spielsituation ausdrücklich eingeben, mathematischen Callpreis getrennt von Strategie lesen.
+Kompakte schwarz-weiß-graue Hauptansicht mit „Aktuell“ ganz oben. Eigene Karten, Tischkarten und Ergebnis sind zunächst verdeckt; je „Zeigen“ blendet den gewünschten Bereich ein. „Alles verdecken“ und ein Appwechsel verdecken wieder. Karten bleiben auch verdeckt antippbar.
+
+Zwei konkrete Handkarten auswählen, dann den tatsächlichen Flop im selben Rechner ergänzen. Optional Turn und River hinzufügen. Gegnerzahl meint nur Gegner, die noch in der Hand sind. Die berechnete Equity ist der erwartete Potanteil gegen zufällige Gegner, keine Vorhersage gegen eine bestimmte Setzauswahl. Bedingte Euro-Hilfe neben dem Potanteil, Eingaben über „Einsatzangaben“: Spielsituation ausdrücklich eingeben, mathematischen Callpreis getrennt von Strategie lesen.
 
 ## Lokal entwickeln und prüfen
 
@@ -23,7 +25,7 @@ npm run test:browser
 ## Struktur
 
 - `src/cards.js`, `evaluator.js`: Kartenkodierung und Handvergleich.
-- `src/equity.js`, `worker.js`, `draws.js`: Simulation, exakte River-Spezialauswertung und definierte Trefferereignisse.
+- `src/equity.js`, `worker.js`, `draws.js`: Simulation mit 1 oder 5 Mio. Austeilungen, exakte Heads-up-Auswertung ab dem Flop und definierte Trefferereignisse.
 - `src/strategy.js`: Geldvalidierung, Callformeln, ausdrücklich vereinfachte Regeln.
 - `src/main.js`, `style.css`, `index.html`: Oberfläche, Zustände, Erläuterungen.
 - `data/preflop.json`: einzige öffentliche Starthandstatistik; Rangliste und Einzelwerte teilen dieselbe Quelle.
@@ -47,4 +49,4 @@ npm run test:browser
 
 ## Grenzen
 
-Vereinfachte Anfängerheuristiken, keine optimale Strategie und kein Gegnerprofil. Keine automatische All-in-/Nebenpotberechnung. Preflop-Daten enthalten nur Equity, keine getrennten Sieg-/Teilungsquoten; diese werden erst für das konkrete Board neu berechnet. Statistische Unsicherheit ist von Modellunsicherheit zu unterscheiden. Ein physisches iPhone muss separat abgenommen werden.
+Vereinfachte Anfängerheuristiken, keine optimale Strategie und kein Gegnerprofil. Keine automatische All-in-/Nebenpotberechnung. Die gespeicherte Preflop-Referenz enthält nur Equity. Die Live-Berechnung der ausgewählten Hand liefert zusätzlich getrennte Sieg-/Teilungsquoten. Standard: 1 Mio., optional 5 Mio. Austeilungen; gegen einen Gegner nach dem Flop exakt. Statistische Unsicherheit ist von Modellunsicherheit zu unterscheiden. Ein physisches iPhone muss separat abgenommen werden.

@@ -20,6 +20,9 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator("#result")).toContainText(
     "Wähle deine zwei Karten",
   );
+  await page.locator("#toggle-hero").click();
+  await page.locator("#toggle-board").click();
+  await page.locator("#toggle-equity").click();
 });
 test("preflop → incomplete flop → actual flop, edits, removal, new hand", async ({
   page,
@@ -27,14 +30,16 @@ test("preflop → incomplete flop → actual flop, edits, removal, new hand", as
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await hand(page);
-  await expect(page.locator("#result")).toContainText("AKs");
+  await expect(page.locator("#current-hand")).toContainText("AKs");
   await page.locator("#opponents").selectOption("2");
   await choose(page, "Flopkarte 1", "Dame", "Herz");
   await expect(page.locator("#result")).toContainText("unvollständig");
   await expect(page.locator("#result")).not.toContainText("%");
   await choose(page, "Flopkarte 2", "9", "Herz");
   await choose(page, "Flopkarte 3", "2", "Kreuz");
-  await expect(page.locator("#result")).toContainText("Simulation fertig");
+  await expect(page.locator("#public-status")).toContainText(
+    "Simulation fertig",
+  );
   await expect(page.locator("#current-hand")).toContainText("Hohe Karte");
   await expect(
     page.getByRole("button", { name: "Handkarte 1: Ass Herz" }),
@@ -44,7 +49,9 @@ test("preflop → incomplete flop → actual flop, edits, removal, new hand", as
     .getByRole("button", { name: "Karte entfernen", exact: true })
     .click();
   await expect(page.locator("#result")).toContainText("unvollständig");
+  await page.locator("#edit-situation").click();
   await page.locator("#stack").fill("8,70");
+  await page.locator("#close-situation").click();
   await page.getByRole("button", { name: "Neue Hand" }).click();
   await expect(page.locator("#result")).toContainText(
     "Wähle deine zwei Karten",
@@ -63,9 +70,15 @@ test("duplicates disabled, rank 169 completeness, opponent effects", async ({
     page.getByRole("button", { name: "Ass Herz", exact: true }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Ass Pik", exact: true }).click();
-  await expect(page.locator("#result")).toContainText("AA");
+  await expect(page.locator("#current-hand")).toContainText("AA");
   await page.locator("#opponents").selectOption("1");
-  await expect(page.locator("#result")).toContainText("85,1");
+  await expect(page.locator("#public-status")).toContainText(
+    "1.000.000 Austeilungen",
+  );
+  const equity = await page.locator(".equity-number").innerText();
+  expect(Number(equity.replace(",", ".").replace(" %", ""))).toBeGreaterThan(
+    84,
+  );
   await page.getByText("Rangliste öffnen", { exact: true }).click();
   expect(await page.locator("#ranking-body tr").count()).toBe(169);
 });
@@ -77,15 +90,16 @@ test("fast changes terminate worker and never restore stale output", async ({
   for (const n of ["1", "5", "2", "4"])
     await page.locator("#opponents").selectOption(n);
   await page.locator("#clear-board").click();
-  await expect(page.locator("#result")).toContainText("AKs");
+  await expect(page.locator("#current-hand")).toContainText("AKs");
   await page.waitForTimeout(1000);
-  await expect(page.locator("#result")).toContainText("Gegen 4");
-  await expect(page.locator("#result")).not.toContainText("Simulation fertig");
+  await expect(page.locator("#street")).toHaveText("Vor dem Flop");
+  await expect(page.locator("#current-hand")).toContainText("AKs");
 });
 test("call validation, zero and 100%, future costs, euro recommendations", async ({
   page,
 }) => {
   await hand(page);
+  await page.locator("#edit-situation").click();
   await page.locator("#pot").fill("3");
   await page.locator("#call").fill("1");
   await expect(page.locator("#threshold")).toContainText("25,0 %");
@@ -130,7 +144,9 @@ test("no horizontal overflow at 320, 430 and desktop; keyboard-sized viewport", 
 }) => {
   await hand(page);
   await flop(page);
-  await expect(page.locator("#result")).toContainText("Simulation fertig");
+  await expect(page.locator("#public-status")).toContainText(
+    "Simulation fertig",
+  );
   for (const [width, height] of [
     [320, 650],
     [430, 480],
@@ -142,10 +158,12 @@ test("no horizontal overflow at 320, 430 and desktop; keyboard-sized viewport", 
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    await page.locator("#edit-situation").click();
     await page.locator("#pot").scrollIntoViewIfNeeded();
     await page.locator("#pot").click();
     await page.locator("#pot").fill("1,20");
     await expect(page.locator("#pot")).toBeInViewport();
+    await page.locator("#close-situation").click();
   }
   await page.setViewportSize({ width: 430, height: 932 });
   await page.evaluate(() => scrollTo(0, 0));
@@ -162,8 +180,8 @@ test("exact river, zero opponents and boot failure fallback", async ({
   await choose(page, "Turn", "Bube", "Herz");
   await choose(page, "River", "Zehn", "Herz");
   await page.locator("#opponents").selectOption("1");
-  await expect(page.locator("#result")).toContainText("Exakt im Modell");
-  await expect(page.locator("#result")).toContainText("990");
+  await expect(page.locator("#result")).toContainText("Exakt im Zufallsmodell");
+  await expect(page.locator("#public-status")).toContainText("990");
   await page.locator("#opponents").selectOption("0");
   await expect(page.locator("#result")).toContainText("ohne Kartenvergleich");
   await page.route("**/*index*.js", (route) => route.abort());

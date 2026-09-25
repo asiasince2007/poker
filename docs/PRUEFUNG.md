@@ -19,13 +19,17 @@ Abgedeckt: Start, zwei Handkarten, vollständiger/unvollständiger Flop, Karten 
 
 Ein beim ersten Test gefundener Unterschied zwischen automatischer Eingabefüllung und sichtbarer Scrollposition nach Viewportwechsel wird im Abnahmetest ausdrücklich durch Scrollen und Antippen geprüft. Das behauptet keine automatische iOS-Tastatursteuerung. JavaScript-aus wird in einer eigenen Browserkonfiguration getestet.
 
+## Kompakte Präzisionsfassung
+
+Zusätzliche Tests: exakte Flop-/Turn-Anzahlen und Royal-Flush-Sicherheitsfälle, keine Equity aus deterministischen Enumerationspräfixen, 1-Mio.- und 5-Mio.-Zielgrößen mit sinkendem Fehler, feste-Pot-Callgrenzen inklusive q=0/1, Chiprundung und Reststack. Browser: unabhängiges Verdecken aller drei Bereiche, keine sichtbaren abgeleiteten Angaben, Reset, Berechnung bei verdecktem Ergebnis, 5-Mio.-Modus, exakte Floprechnung und bedingte Kurzempfehlungen. Hauptansicht bei 430×740 geprüft, um gegenüber 430×932 Platz für Browserleisten zu lassen. Schrift und Farben bewusst zurückhaltend; Eingaben bleiben mit 16-px-Schrift, interaktive Ziele mindestens 44 px hoch.
+
 ## iPhone 14 Pro Max: kurzer echter Gerätetest
 
 1. Website über HTTPS in Safari öffnen; keine heruntergeladene HTML-Datei verwenden. Oben muss der Rechner mit einer verständlichen Eingabeaufforderung erscheinen.
-2. A♥ und K♥ auswählen; „AKs“ und ein Potanteil müssen erscheinen. Gegner auf 2 stellen.
-3. Q♥ und 9♥ ergänzen: „Flop noch unvollständig“, keine alte Prozentzahl. Dann 2♣ wählen: Simulation fertig, ungefähr 58 % gegen zwei Zufallsgegner. Handkarten bleiben erhalten.
+2. A♥ und K♥ auswählen: Karten und Ergebnis bleiben verdeckt. „Zeigen“ bei eigenen Karten und beim Potanteil antippen; oben erscheint die aktuelle Einordnung. Gegner auf 2 stellen.
+3. Q♥ und 9♥ ergänzen: „Flop noch unvollständig“, keine alte Prozentzahl. Dann 2♣ wählen: Rechnung bis 1.000.000, ungefähr 58 % gegen zwei Zufallsgegner. Handkarten bleiben erhalten. Die Hauptansicht einschließlich Ergebnis, Sichtschaltern und Einsatzangaben soll ohne Scrollen sichtbar sein. Optional 5 Mio. wählen.
 4. Eine bereits verwendete Karte erneut wählen wollen: gesperrt. Eine Flopkarte ändern und sofort Gegnerzahl wechseln: nur der neue Stand darf bleiben.
-5. Zur Euro-Hilfe scrollen. Pot 3, Call 1: 25 % Callpreis. Ohne Abschlussbestätigung keine endgültige EV-Entscheidung. Mit Bestätigung und eigener Schätzung 35: +0,40 € im Modell. Die Eingabe muss mit geöffneter Tastatur erreichbar sein.
-6. „Neue Hand“: Karten, Geld und eigene Schätzung leer, Blinds unverändert. Neu laden und die Standkennung am Seitenende prüfen.
+5. „Einsatzangaben“ öffnen. Pot 3, Call 1: 25 % Callpreis. Ohne Abschlussbestätigung keine endgültige EV-Entscheidung. Mit Bestätigung und eigener Schätzung 35: +0,40 € im Modell. Die Eingabe muss mit geöffneter Tastatur erreichbar sein.
+6. „Alles verdecken“ sowie Appwechsel prüfen; Ergebnis, Handrang und Empfehlungen verschwinden. „Neue Hand“: Karten, Geld und eigene Schätzung leer, Blinds unverändert, Sichtbarkeit wieder verdeckt. Neu laden und die Standkennung am Seitenende prüfen.
 
 Physischer Gerätetest: offen, vom Nutzer durchzuführen. Die Ursache des weißen Ergebnisbereichs der alten lokalen HTML-Datei wurde nicht nachgewiesen und wird durch diese Neuimplementierung nicht rückwirkend erklärt.
